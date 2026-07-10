@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>Knickknacks</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232452E8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 3H3v18h18V3zM9 21V9h12M3 15h6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Dark Mode Palette (Default) */
+    --bg: #14161B;
+    --surface: #1C1F27;
+    --text: #E8EAEF;
+    --ghost: #666666;
+    --muted: #8B93A3;
+    --border: #2B2F3A;
+    --accent: #5C7CFA;
+    --accent-soft: #1E2540;
+    
+    /* Unit Converter Specific */
+    --preview: #4CAF50; 
+    --result: #4CAF50; 
+    --error: #e57373;
+    
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  
+  :root[data-theme="light"] {
+    /* Light Mode Palette */
+    --bg: #EEF1F3;
+    --surface: #FFFFFF;
+    --text: #1B1F2A;
+    --ghost: #AAAAAA;
+    --muted: #5B6472;
+    --border: #DCE0E5;
+    --accent: #2452E8;       
+    --accent-soft: #E8EDFE;
+
+    --preview: #388E3C;
+    --result: #388E3C;
+    --error: #D32F2F;
+  }
+
+  * { box-sizing: border-box; }
+  svg[hidden] { display: none !important; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px 60px;
+    transition: background .3s, color .3s;
+  }
+  .page { width: 100%; max-width: 1040px; } 
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .topbar h1 { font-size: 2.4rem; margin: 0; letter-spacing: -.5px; font-weight: 800; } 
+  
+  .theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background-color: var(--surface);
+    padding: 0;
+    flex: none;
+  }
+  .theme-toggle:hover { transform: scale(1.05); }
+
+  /* Tab bar */
+  .tabbar { display: flex; justify-content: center; gap: 5px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; scrollbar-width: none; }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: none; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 999px; padding: 8px 12px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+  .tab-btn svg { width: 16px; height: 16px; flex: none; }
+  .tab-btn:hover { background: var(--accent-soft); color: var(--text); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
+  .tab-panel { display: block; }
+  .tab-panel[hidden] { display: none; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; position: relative; }
+
+  /* --- Unit Converter Styles --- */
+  .uc-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 20px; }
+  .palette { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 16px 64px rgba(0, 0, 0, 0.1); padding: 24px 32px; font-size: 40px; font-weight: 500; display: flex; align-items: center; gap: 16px; transition: all 0.2s ease; width: max-content; }
+  .static-text { color: var(--muted); pointer-events: none; user-select: none; }
+  .input-wrap { position: relative; display: inline-flex; }
+  .measure { visibility: hidden; white-space: pre; min-width: 1ch; }
+  .ghost { position: absolute; top: 0; left: 0; right: 0; bottom: 0; color: var(--ghost); pointer-events: none; white-space: pre; }
+  
+  .palette input { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; background: transparent; border: none; outline: none; font: inherit; color: transparent; caret-color: var(--text); padding: 0; margin: 0; }
+  .palette #num-in { color: var(--text); }
+  
+  .hint-text { margin-top: 14px; font-size: 13px; color: var(--ghost); user-select: none; letter-spacing: 0.3px; text-align: center; }
+  
+  .result-container { margin-top: 40px; font-size: 56px; font-weight: 600; color: var(--result); opacity: 0; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; }
+  .result-container.show { opacity: 1; transform: translateY(0); }
+  .result-container.preview { color: var(--preview); opacity: 0.8; font-weight: 500; }
+  .result-container.error { color: var(--error); font-size: 24px; font-weight: 400; }
+  
+  @keyframes bounceIn { 0% { transform: scale(1) translateY(0); } 50% { transform: scale(1.15) translateY(-5px); } 100% { transform: scale(1) translateY(0); } }
+  .result-container.bounce { animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  
+  .history { margin-top: 40px; width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto; padding-bottom: 40px; }
+  .history-item { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; padding: 16px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; font-size: 20px; box-sizing: border-box; animation: slideDown 0.3s ease forwards; }
+  .history-item .src-part { text-align: right; color: var(--muted); }
+  .history-item .equals { text-align: center; color: var(--border); margin: 0; }
+  .history-item .dest-part { text-align: left; color: var(--text); font-weight: 600; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* Dropzone */
+  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 28px 16px; text-align: center; cursor: pointer; }
+  .dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .btn-browse { font: inherit; font-weight: 600; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+
+  /* File list */
+  .file-list { margin: 20px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .file-row { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .file-row[hidden] { display: none !important; } 
+  
+  .drag-handle { flex: none; color: var(--muted); cursor: grab; touch-action: none; font-size: 14px; letter-spacing: -1px; margin-left: 6px; }
+  .drag-handle:active { cursor: grabbing; }
+  .sortable-ghost { opacity: 0.4; }
+  .file-info { flex: 1 1 auto; min-width: 0; }
+  .file-name { margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { margin: 0; font-size: 12px; color: var(--muted); }
+  .file-actions { flex: none; display: flex; gap: 4px; }
+  .icon-btn { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .icon-btn:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+  .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .empty-state { color: var(--muted); font-size: 14px; padding: 20px 0; text-align: center; width: 100%; margin: 0; list-style: none; }
+
+  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer; }
+  .btn-primary.is-empty { opacity: 0.55; }
+  .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+  .note { text-align: center; font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+
+  /* Thumbnails */
+  .thumb-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; justify-content: center; }
+  .thumb-card { width: 104px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); cursor: grab; position: relative; }
+  .thumb-card:active { cursor: grabbing; }
+  .thumb-card img { width: 100%; display: block; background: #fff; }
+  .thumb-badge { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,.65); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 999px; font-family: var(--mono); }
+  .thumb-remove { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; }
+  
+  /* Formats */
+  .format-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .format-btn { font: inherit; font-weight: 600; font-size: 13px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+  .format-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .format-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .format-btn.blurred { filter: blur(1.5px); opacity: 0.4; pointer-events: none; }
+
+  /* Time/Timer/Stopwatch common */
+  .time-panel { text-align: center; }
+  .time-controls { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; position: absolute; top: 24px; right: 24px; z-index: 1002;}
+  .clock-zone { color: var(--muted); font-size: 13px; margin: 0 0 2px; }
+  .clock-big { font-family: var(--mono); font-size: 54px; font-weight: 700; letter-spacing: .5px; font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 0.1s; display: inline-block; }
+  .clock-big:hover { transform: scale(1.02); }
+  .clock-big:active { transform: scale(0.98); }
+  .clock-big .ampm { font-size: 18px; margin-left: 8px; color: var(--muted); vertical-align: middle; }
+  
+  /* Editable Timer/Alarm Clock */
+  .clock-edit-group {
+    font-family: var(--mono);
+    font-size: 54px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0px;
+    cursor: text;
+  }
+  .clock-edit-group input {
+    width: 68px;
+    font: inherit;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: center;
+    outline: none;
+    padding: 0;
+    -moz-appearance: textfield;
+  }
+  .clock-edit-group select { cursor: pointer; }
+  .ampm-select { color-scheme: light; }
+  .ampm-select option { color: #1B1F2A; background: #FFFFFF; }
+  .clock-edit-group input::-webkit-outer-spin-button,
+  .clock-edit-group input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .clock-edit-group input:focus {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .clock-edit-group input:disabled { color: var(--text); text-decoration: none; }
+  
+  .clock-date { color: var(--muted); margin: 6px 0 20px; font-size: 14px; }
+  .clock-world { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
+  .world-chip { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background .15s; }
+  .world-chip:hover { background: var(--accent-soft); }
+  .world-time { font-family: var(--mono); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .world-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .controls-row { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+  .ctrl-btn { font: inherit; font-weight: 600; padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+  .ctrl-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .lap-list { margin-top: 20px; font-family: var(--mono); font-size: 13px; text-align: left; max-height: 150px; overflow-y: auto; color: var(--muted); }
+  .lap-list div { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+
+  /* Fullscreen Overrides */
+  .panel.fs-active {
+    position: fixed !important; top: 0 !important; left: 0 !important;
+    width: 100vw !important; height: 100vh !important; z-index: 1000 !important;
+    background: var(--bg) !important; border: none !important; border-radius: 0 !important;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .panel.fs-active .clock-big, .panel.fs-active .clock-edit-group { font-size: 15vw; }
+  .panel.fs-active .clock-edit-group input { width: 18vw; }
+  .panel.fs-active .clock-edit-group .ampm-select { font-size: 5vw; }
+  .panel.fs-active .clock-date, .panel.fs-active .clock-world, .panel.fs-active .lap-list { display: none; }
+  .panel.fs-active .clock-zone { display: block; font-size: 1.4vw; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .panel.fs-active .time-controls { position: fixed; top: 32px; right: 32px; }
+
+  /* Simple mode expansions */
+  .simple-mode:not([hidden]) { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 1000; }
+  .simple-mode .panel { border: none; background: transparent; padding: 0; box-shadow: none; display: flex; flex-direction: column; align-items: center; }
+  .simple-mode .clock-date, .simple-mode .clock-world, .simple-mode .controls-row, .simple-mode .input-row, .simple-mode .lap-list, .simple-mode .time-controls { display: none; }
+  .simple-mode .clock-zone { display: block; font-size: 20px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .simple-mode .clock-big { font-size: 12vw; }
+
+  /* Speed tab with gauge */
+  .speed-panel { text-align: center; }
+  .gauge-container { width: 260px; height: 145px; margin: 0 auto; position: relative; overflow: hidden; }
+  .gauge-svg { width: 100%; height: 100%; overflow: visible; }
+  .gauge-text-wrap { position: absolute; bottom: 4px; left: 0; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; }
+  .gauge-row { display: flex; align-items: baseline; gap: 5px; font-family: var(--mono); line-height: 1.05; }
+  .gauge-value { font-size: 24px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; min-width: 68px; text-align: right; }
+  .gauge-arrow { font-size: 13px; color: var(--muted); font-weight: 600; min-width: 12px; text-align: left; }
+  .gauge-unit { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .3px; }
+  .gauge-ping { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .speed-phase { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; font-weight: 500; }
+  
+  .progress-bar-container { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin: 14px auto 0; overflow: hidden; display: none; max-width: 150px; }
+  .progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s linear; }
+
+  .btn-speed { display: block; margin: 20px auto 0; padding: 10px 30px; font: inherit; font-weight: 600; font-size: 14px; color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer; }
+  .btn-speed:disabled { opacity: 0.7; cursor: not-allowed; }
+  .site-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 22px; }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="topbar">
+    <h1>Knickknacks</h1>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle Light/Dark Mode"></button>
+  </div>
+
+  <nav class="tabbar">
+    <button type="button" class="tab-btn active" data-tab="units">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3H3v18h18V3zM9 21V9h12M3 15h6"/></svg>
+      Units
+    </button>
+    <button type="button" class="tab-btn" data-tab="merge">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="12" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.7" /><rect x="8.5" y="6.8" width="12" height="15" rx="2" fill="currentColor"/></svg>
+      Merge
+    </button>
+    <button type="button" class="tab-btn" data-tab="reorder">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.4"/><circle cx="8" cy="12" r="1.4"/><circle cx="8" cy="18" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>
+      Reorder
+    </button>
+    <button type="button" class="tab-btn" data-tab="convert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h7l4 4v14h-11z"/><path d="M9 12.5h6M9 15.8h6M9 9.2h3"/></svg>
+      Convert Files
+    </button>
+    <button type="button" class="tab-btn" data-tab="clock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></svg>
+      Clock
+    </button>
+    <button type="button" class="tab-btn" data-tab="timer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 3h4"/></svg>
+      Timer
+    </button>
+    <button type="button" class="tab-btn" data-tab="alarm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 3h4 M19 3l3 3 M5 3l-3 3"/></svg>
+      Alarm
+    </button>
+    <button type="button" class="tab-btn" data-tab="stopwatch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4M10 3h4M18 6l2-2"/></svg>
+      Stopwatch
+    </button>
+    <button type="button" class="tab-btn" data-tab="speed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5a8 8 0 0 1 16 0"/><path d="M12 15.5l4-5.2"/><circle cx="12" cy="15.5" r="1"/></svg>
+      Speed
+    </button>
+  </nav>
+
+  <section class="tab-panel" id="tab-units">
+    <div class="uc-wrapper">
+      <div class="palette">
+          <div class="input-wrap"><span class="measure" id="num-measure"></span><input type="text" id="num-in" placeholder="0" autofocus autocomplete="off"></div>
+          <div class="input-wrap"><span class="measure" id="src-measure"></span><span class="ghost" id="src-ghost"></span><input type="text" id="src-in" autocomplete="off" spellcheck="false"></div>
+          <div class="static-text">to</div>
+          <div class="input-wrap"><span class="measure" id="dest-measure"></span><span class="ghost" id="dest-ghost"></span><input type="text" id="dest-in" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="hint-text">Press Space to jump to next input</div>
+      <div class="result-container" id="result-display"></div>
+      <div class="history" id="history-container"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-merge" hidden>
+    <div class="panel">
+      <div class="dropzone" id="mergeDropzone">
+        <p>Drop PDF files here, or</p>
+        <button type="button" id="mergeBrowseBtn" class="btn-browse">Choose files</button>
+        <input type="file" id="mergeFileInput" accept="application/pdf,.pdf" multiple hidden>
+      </div>
+      <ol id="mergeFileList" class="file-list" aria-label="Files queued for merging, in order"></ol>
+      <button type="button" id="mergeBtn" class="btn-primary is-empty">Merge &amp; Download</button>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-reorder" hidden>
+    <div class="panel">
+      <div class="dropzone" id="reorderDropzone">
+        <p id="reorderDropzoneText">Drop one or more PDFs here, or</p>
+        <button type="button" id="reorderBrowseBtn" class="btn-browse">Choose files</button>
+        <input type="file" id="reorderFileInput" accept="application/pdf,.pdf" multiple hidden>
+      </div>
+      <div id="thumbGrid" class="thumb-grid"><p class="empty-state">No pages yet — add PDFs above.</p></div>
+      <button type="button" id="reorderExportBtn" class="btn-primary is-empty">Download reordered PDF</button>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-convert" hidden>
+    <div class="panel">
+      <div class="dropzone" id="cvDropzone">
+        <p>Drop an image, PDF, TXT, or MD, or</p>
+        <button type="button" id="cvBrowseBtn" class="btn-browse">Choose file</button>
+        <input type="file" id="cvFileInput" accept="image/*,.heic,.heif,.pdf,.txt,.md" hidden>
+      </div>
+      <div id="cvFileInfo" class="file-row" hidden style="margin-top:16px;">
+        <span class="file-info"><p class="file-name" id="cvFileName">—</p><p class="file-size" id="cvFileMeta">—</p></span>
+        <span class="file-actions"><button type="button" class="icon-btn" id="cvClearBtn" aria-label="Remove file">&times;</button></span>
+      </div>
+      <div id="cvActions" class="format-grid"></div>
+      <p class="note" id="cvError" hidden></p>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-clock" hidden>
+    <div class="panel time-panel">
+      <div class="time-controls"><button type="button" class="icon-btn fs-btn" aria-label="Fullscreen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button></div>
+      <p class="clock-zone" id="clockZone"></p>
+      <div class="clock-big" id="clockBig" title="Click to enlarge">00:00:00<span class="ampm">AM</span></div>
+      <p class="clock-date" id="clockDate"></p>
+      <div class="clock-world" id="clockWorld"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-timer" hidden>
+    <div class="panel time-panel">
+      <div class="time-controls">
+        <button type="button" class="icon-btn muteToggle" aria-label="Toggle Mute">
+          <svg class="icon-unmuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          <svg class="icon-muted" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+        </button>
+        <button type="button" class="icon-btn fs-btn" aria-label="Fullscreen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+      
+      <div class="clock-edit-group" id="timerInputs">
+        <input type="number" id="tH" value="00" min="0" max="99">:<input type="number" id="tM" value="00" min="0" max="59">:<input type="number" id="tS" value="00" min="0" max="59">
+      </div>
+      
+      <div class="controls-row">
+        <button class="ctrl-btn primary" id="timerToggle">Start</button>
+        <button class="ctrl-btn" id="timerReset">Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-alarm" hidden>
+    <div class="panel time-panel">
+      <div class="time-controls">
+        <button type="button" class="icon-btn muteToggle" aria-label="Toggle Mute">
+          <svg class="icon-unmuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          <svg class="icon-muted" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+        </button>
+        <button type="button" class="icon-btn fs-btn" aria-label="Fullscreen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+      <div class="clock-edit-group" id="alarmInputs">
+        <input type="number" id="aH" value="12" min="1" max="12">:<input type="number" id="aM" value="00" min="0" max="59">
+        <select id="aAmPm" class="ampm-select" style="appearance:none; background:transparent; border:none; color:inherit; font-family:inherit; font-weight: 500; font-size: 20px; margin-left:8px; cursor:pointer; outline:none;">
+          <option value="AM">AM</option><option value="PM">PM</option>
+        </select>
+      </div>
+      <div class="controls-row">
+        <button class="ctrl-btn primary" id="alarmToggle">Set Alarm</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-stopwatch" hidden>
+    <div class="panel time-panel">
+      <div class="time-controls"><button type="button" class="icon-btn fs-btn" aria-label="Fullscreen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button></div>
+      <div class="clock-big" id="swBig" title="Click to enlarge">00:00.00</div>
+      <div class="controls-row">
+        <button class="ctrl-btn primary" id="swToggle">Start</button>
+        <button class="ctrl-btn" id="swLap">Lap</button>
+        <button class="ctrl-btn" id="swReset">Reset</button>
+      </div>
+      <div class="lap-list" id="swLaps"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-speed" hidden>
+    <div class="panel speed-panel">
+      <div class="gauge-container">
+        <svg class="gauge-svg" viewBox="0 0 200 110">
+          <path d="M 20 95 A 75 75 0 0 1 180 95" fill="none" stroke="var(--border)" stroke-width="18" stroke-linecap="round"/>
+          <path id="speedGaugePath" d="M 20 95 A 75 75 0 0 1 180 95" fill="none" stroke="var(--accent)" stroke-width="18" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6"/>
+        </svg>
+        <div class="gauge-text-wrap" id="speedGaugeTextWrap">
+          <div class="gauge-row"><span class="gauge-value" id="speedDown">—</span><span class="gauge-arrow">↓</span></div>
+          <div class="gauge-row"><span class="gauge-value" id="speedUp">—</span><span class="gauge-arrow">↑</span></div>
+          <div class="gauge-unit">Mbps</div>
+        </div>
+      </div>
+      <div class="gauge-ping">Ping <span id="speedPing">—</span></div>
+
+      <div class="speed-phase" id="speedPhase">Ready to test</div>
+      <div class="progress-bar-container" id="speedProgressCont">
+        <div class="progress-bar-fill" id="speedProgress"></div>
+      </div>
+
+      <button type="button" id="speedRunBtn" class="btn-speed">Start test</button>
+      <p class="note" id="speedNote" hidden></p>
+    </div>
+  </section>
+
+  <p class="site-note" id="siteNote" hidden>Files stay on this device — nothing is uploaded.</p>
+</main>
+
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" crossorigin="anonymous" onerror="console.error('Failed to load pdf-lib from unpkg')"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Sortable from jsdelivr')"></script>
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous" onerror="console.error('Failed to load pdfjs-dist from unpkg')"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js" crossorigin="anonymous" onerror="console.error('Failed to load heic2any from jsdelivr')"></script>
+
+<script>
+(function () {
+  'use strict';
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+
+  /* --- Light/Dark Theme Setup --- */
+  const themeToggle = document.getElementById('theme-toggle');
+  const prefersLight = window.matchMedia('(prefers-color-scheme: light)');
+  
+  const sunIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  const moonIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+  function setTheme(isLight) {
+      document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+      themeToggle.innerHTML = isLight ? moonIcon : sunIcon;
+  }
+
+  let isLightMode = prefersLight.matches;
+  setTheme(isLightMode);
+
+  themeToggle.addEventListener('click', () => { isLightMode = !isLightMode; setTheme(isLightMode); });
+  prefersLight.addEventListener('change', (e) => { isLightMode = e.matches; setTheme(isLightMode); });
+
+  /* --- Tab Management (with hash routing) --- */
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const siteNote = document.getElementById('siteNote');
+  const fileBasedTabs = ['merge', 'reorder', 'convert'];
+  const validTabs = Array.from(tabButtons).map(b => b.dataset.tab);
+  const DEFAULT_TAB = 'units';
+
+  // Renders a tab as active without touching the URL — used by both the hashchange
+  // listener and the initial load, so the hash is always the single source of truth.
+  function activateTab(tabName, focusInput) {
+    if (!validTabs.includes(tabName)) tabName = DEFAULT_TAB;
+    tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
+    document.querySelectorAll('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + tabName);
+    siteNote.hidden = !fileBasedTabs.includes(tabName);
+    if (tabName === DEFAULT_TAB && focusInput) document.getElementById('num-in').focus();
+    return tabName;
+  }
+
+  // Clicking a tab updates the hash (bookmarkable + back/forward friendly). If the
+  // hash is already correct (e.g. re-clicking the current tab), hashchange won't
+  // fire on its own, so activate directly in that case. Some sandboxed embeds (e.g.
+  // an about:srcdoc preview iframe) disallow URL/History changes entirely — fall
+  // back to just switching the panel so the tabs still work there.
+  tabButtons.forEach(btn => btn.addEventListener('click', () => {
+    const tabName = btn.dataset.tab;
+    if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
+    try { location.hash = tabName; }
+    catch (e) { activateTab(tabName, true); }
+  }));
+
+  window.addEventListener('hashchange', () => activateTab(location.hash.slice(1), true));
+
+  // Initial route: honor whatever hash the page was loaded/bookmarked with, defaulting
+  // to Units. replaceState (not setting location.hash) avoids adding an extra history
+  // entry, but some sandboxed embeds throw on any History API call — ignore that safely.
+  const startTab = activateTab(location.hash.slice(1), false);
+  if (location.hash.slice(1) !== startTab) {
+    try { history.replaceState(null, '', '#' + startTab); } catch (e) { /* URL update unavailable in this embed; tab still activated above */ }
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes) return '0 KB';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+  }
+  function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function getExt(filename) { return filename.toLowerCase().split('.').pop() || ''; }
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function wireDropzone(drop, input, btn, cb) {
+    drop.addEventListener('click', () => input.click());
+    btn.addEventListener('click', e => { e.stopPropagation(); input.click(); });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); cb(e.dataTransfer.files); });
+    input.addEventListener('change', e => { cb(e.target.files); input.value = ''; });
+  }
+
+  // Audio Context & Notifications for Timer/Alarm
+  let audioCtx, isMuted = false;
+  document.querySelectorAll('.muteToggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+          isMuted = !isMuted;
+          document.querySelectorAll('.icon-unmuted').forEach(el => el.hidden = isMuted);
+          document.querySelectorAll('.icon-muted').forEach(el => el.hidden = !isMuted);
+      });
+  });
+  
+  function playBeep() {
+      if (isMuted) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const playOsc = (freq, time, dur) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + time);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime + time);
+          osc.start(audioCtx.currentTime + time); osc.stop(audioCtx.currentTime + time + dur);
+      };
+      playOsc(880, 0, 0.2); playOsc(880, 0.3, 0.2); playOsc(1100, 0.6, 0.4);
+  }
+
+  // Fullscreen Logic
+  document.querySelectorAll('.fs-btn').forEach(btn => btn.addEventListener('click', e => {
+    const p = e.target.closest('.panel');
+    if (!document.fullscreenElement) {
+        p.closest('.tab-panel').requestFullscreen && p.closest('.tab-panel').requestFullscreen();
+    } else {
+        document.exitFullscreen && document.exitFullscreen();
+    }
+  }));
+
+  document.addEventListener('fullscreenchange', () => {
+    const fsEl = document.fullscreenElement;
+    document.querySelectorAll('.panel.time-panel, .panel.speed-panel').forEach(p => {
+        const btn = p.querySelector('.fs-btn');
+        if (fsEl && fsEl.contains(p)) {
+            p.classList.add('fs-active');
+            if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+        } else {
+            p.classList.remove('fs-active');
+            if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+        }
+    });
+  });
+
+  /* --- UNITS CONVERTER --- */
+  try { (function() {
+    const catNames = { length: 'length', mass: 'weight', temp: 'temperature', time: 'time', currency: 'currency', volume: 'volume' };
+    const unitDB = {
+        meter: { cat: 'length', factor: 1, names: ['m', 'meter', 'meters', 'metre', 'metres'], display: 'meters' },
+        kilometer: { cat: 'length', factor: 1000, names: ['km', 'kilometer', 'kilometers', 'k'], display: 'kilometers' },
+        centimeter: { cat: 'length', factor: 0.01, names: ['cm', 'centimeter', 'centimeters'], display: 'centimeters' },
+        millimeter: { cat: 'length', factor: 0.001, names: ['mm', 'millimeter', 'millimeters'], display: 'millimeters' },
+        mile: { cat: 'length', factor: 1609.344, names: ['mi', 'mile', 'miles'], display: 'miles' },
+        yard: { cat: 'length', factor: 0.9144, names: ['yd', 'yard', 'yards'], display: 'yards' },
+        foot: { cat: 'length', factor: 0.3048, names: ['ft', 'foot', 'feet'], display: 'feet' },
+        inch: { cat: 'length', factor: 0.0254, names: ['in', 'inch', 'inches'], display: 'inches' },
+        lightyear: { cat: 'length', factor: 9460730472580800, names: ['ly', 'lightyear', 'lightyears', 'light year', 'light years'], display: 'lightyears' },
+        gram: { cat: 'mass', factor: 1, names: ['g', 'gram', 'grams'], display: 'grams' },
+        kilogram: { cat: 'mass', factor: 1000, names: ['kg', 'kilogram', 'kilograms', 'kilo', 'kilos'], display: 'kilograms' },
+        pound: { cat: 'mass', factor: 453.59237, names: ['lb', 'lbs', 'pound', 'pounds'], display: 'pounds' },
+        ounce: { cat: 'mass', factor: 28.34952, names: ['oz', 'ounce', 'ounces'], display: 'ounces' },
+        liter: { cat: 'volume', factor: 1, names: ['l', 'liter', 'liters', 'litre', 'litres'], display: 'liters' },
+        milliliter: { cat: 'volume', factor: 0.001, names: ['ml', 'milliliter', 'milliliters', 'millilitre', 'millilitres'], display: 'milliliters' },
+        gallon: { cat: 'volume', factor: 3.78541, names: ['gal', 'gallon', 'gallons'], display: 'gallons' },
+        celsius: { cat: 'temp', names: ['c', 'celsius'], display: '°C' },
+        fahrenheit: { cat: 'temp', names: ['f', 'fahrenheit'], display: '°F' },
+        kelvin: { cat: 'temp', names: ['k', 'kelvin'], display: 'K' },
+        second: { cat: 'time', factor: 1, names: ['s', 'sec', 'second', 'seconds'], display: 'seconds' },
+        minute: { cat: 'time', factor: 60, names: ['min', 'minute', 'minutes'], display: 'minutes' },
+        hour: { cat: 'time', factor: 3600, names: ['h', 'hr', 'hour', 'hours'], display: 'hours' },
+        day: { cat: 'time', factor: 86400, names: ['d', 'day', 'days'], display: 'days' },
+        usd: { cat: 'currency', factor: 1, names: ['usd', '$', 'dollar', 'dollars', 'us', 'american', 'america', 'united states'], display: 'USD' },
+        eur: { cat: 'currency', factor: 1.09, names: ['eur', '€', 'euro', 'euros', 'eu', 'european', 'europe'], display: 'EUR' },
+        gbp: { cat: 'currency', factor: 1.34, names: ['gbp', '£', 'pound', 'pounds', 'uk', 'british', 'britain', 'england', 'english'], display: 'GBP' }
+    };
+
+    const numIn = document.getElementById('num-in');
+    const numMeasure = document.getElementById('num-measure');
+    const resultDisplay = document.getElementById('result-display');
+    const historyContainer = document.getElementById('history-container');
+
+    const srcState = { input: document.getElementById('src-in'), ghost: document.getElementById('src-ghost'), measure: document.getElementById('src-measure'), query: '', matches: [], selectedIdx: 0, acceptedUnit: null };
+    const destState = { input: document.getElementById('dest-in'), ghost: document.getElementById('dest-ghost'), measure: document.getElementById('dest-measure'), query: '', matches: [], selectedIdx: 0, acceptedUnit: null };
+
+    updateMeasure(numIn, numMeasure, null); updateUI(srcState); updateUI(destState);
+
+    function findMatches(query) {
+        if (!query) return [];
+        let results = [];
+        for (const [unitId, data] of Object.entries(unitDB)) {
+            for (const name of data.names) if (name.startsWith(query.toLowerCase())) results.push({ unitId, matchStr: name, cat: data.cat });
+        }
+        return results.sort((a, b) => (a.matchStr.length - b.matchStr.length) || a.matchStr.localeCompare(b.matchStr));
+    }
+
+    function updateMeasure(inputEl, measureEl, fullText) { measureEl.textContent = fullText || inputEl.value || (inputEl.id === 'num-in' ? '0' : 'unit'); }
+
+    function updateUI(state) {
+        let typed = state.query || '', remainder = '', placeholderText = 'unit'; 
+        if (state.matches.length > 0 && typed) { remainder = state.matches[state.selectedIdx].matchStr.substring(typed.length); } 
+        else if (!typed && state === destState && srcState.acceptedUnit) { remainder = getDefaultDestAbbrev(srcState.acceptedUnit, unitDB[srcState.acceptedUnit].cat); }
+        state.ghost.innerHTML = (!typed && !remainder) ? `<span style="color: var(--border)">${placeholderText}</span>` : `<span style="color: var(--text)">${typed}</span><span style="color: var(--ghost)">${remainder}</span>`;
+        updateMeasure(state.input, state.measure, (typed + remainder) || placeholderText);
+    }
+
+    function acceptCompletion(state, autoAdvanceTo) {
+        let accepted = null;
+        if (state.matches.length > 0) { accepted = state.matches[state.selectedIdx]; state.acceptedUnit = accepted.unitId; state.input.value = accepted.matchStr; state.query = accepted.matchStr; } 
+        else if (state === destState && !state.query && srcState.acceptedUnit) {
+            const matches = findMatches(getDefaultDestAbbrev(srcState.acceptedUnit, unitDB[srcState.acceptedUnit].cat));
+            if (matches.length > 0) { accepted = matches[0]; state.acceptedUnit = accepted.unitId; state.input.value = accepted.matchStr; state.query = accepted.matchStr; }
+        } else if (state.acceptedUnit) { accepted = { unitId: state.acceptedUnit, cat: unitDB[state.acceptedUnit].cat }; }
+        state.matches = []; updateUI(state); if (autoAdvanceTo) autoAdvanceTo.focus();
+        return accepted;
+    }
+
+    function getDefaultDestAbbrev(srcUnitId, cat) {
+        if (cat === 'mass') return (srcUnitId === 'pound' || srcUnitId === 'ounce' || srcUnitId === 'stone') ? 'kg' : 'lb';
+        if (cat === 'length') return (srcUnitId === 'foot' || srcUnitId === 'inch' || srcUnitId === 'mile' || srcUnitId === 'yard') ? 'm' : 'ft';
+        if (cat === 'temp') return srcUnitId === 'celsius' ? 'f' : 'c';
+        if (cat === 'time') return (srcUnitId === 'minute' || srcUnitId === 'millisecond') ? 'h' : 'min';
+        if (cat === 'currency') return srcUnitId === 'usd' ? 'eur' : 'usd';
+        if (cat === 'volume') return (srcUnitId === 'gallon' || srcUnitId === 'cup') ? 'l' : 'gal';
+        return 'm';
+    }
+
+    function handleUnitInputEvent(e, state) {
+        let val = state.input.value;
+        if (state === srcState) {
+            const lowerVal = val.toLowerCase();
+            if (lowerVal.endsWith('to') || lowerVal.endsWith(' to')) {
+                const prefix = val.slice(0, -(lowerVal.endsWith(' to') ? 3 : 2)).trim();
+                if (prefix.length > 0 && findMatches(prefix).length > 0) {
+                    state.input.value = prefix; state.query = prefix; state.matches = findMatches(prefix); state.selectedIdx = 0; 
+                    const accepted = acceptCompletion(state, destState.input);
+                    if (accepted) { if (destState.acceptedUnit && unitDB[destState.acceptedUnit].cat !== accepted.cat) { destState.input.value = ''; destState.query = ''; destState.acceptedUnit = null; } }
+                    calculate(); return; 
+                }
+            }
+        }
+        state.query = val; state.acceptedUnit = null; state.matches = findMatches(state.query); state.selectedIdx = 0; updateUI(state); calculate();
+    }
+
+    function handleUnitKeydown(e, state, nextEl, prevEl, isDest) {
+        if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') {
+            if (isDest && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); acceptCompletion(state, nextEl); calculate(); commitToHistory(); return; }
+            e.preventDefault(); const accepted = acceptCompletion(state, nextEl);
+            if (!isDest && accepted) { if (destState.acceptedUnit && unitDB[destState.acceptedUnit].cat !== accepted.cat) { destState.input.value = ''; destState.query = ''; destState.acceptedUnit = null; } }
+            calculate();
+        } else if (e.key === 'ArrowDown') { e.preventDefault(); if (state.matches.length > 0) { state.selectedIdx = (state.selectedIdx + 1) % state.matches.length; updateUI(state); calculate(); }
+        } else if (e.key === 'ArrowUp') { e.preventDefault(); if (state.matches.length > 0) { state.selectedIdx = (state.selectedIdx - 1 + state.matches.length) % state.matches.length; updateUI(state); calculate(); }
+        } else if (e.key === 'Backspace' && state.input.value === '') { e.preventDefault(); if (prevEl) prevEl.focus(); }
+    }
+
+    function doMath(val, srcUnitId, destUnitId) {
+        const src = unitDB[srcUnitId], dest = unitDB[destUnitId];
+        if (src.cat === 'temp') {
+            let c = val;
+            if (srcUnitId === 'fahrenheit') c = (val - 32) * 5/9; else if (srcUnitId === 'kelvin') c = val - 273.15;
+            if (destUnitId === 'celsius') return c; if (destUnitId === 'fahrenheit') return (c * 9/5) + 32; if (destUnitId === 'kelvin') return c + 273.15;
+        } 
+        return val * (src.factor / dest.factor);
+    }
+
+    function calculate() {
+        resultDisplay.classList.remove('error', 'preview', 'show', 'bounce');
+        const val = parseFloat(numIn.value);
+        let srcUnitId = srcState.acceptedUnit; if (!srcUnitId && srcState.matches.length > 0) srcUnitId = srcState.matches[srcState.selectedIdx].unitId;
+        if (isNaN(val) || !srcUnitId) return;
+        let destUnitId = destState.acceptedUnit, isPreview = (!srcState.acceptedUnit || !destState.acceptedUnit);
+        if (!destUnitId) {
+            if (destState.matches.length > 0) { destUnitId = destState.matches[destState.selectedIdx].unitId; isPreview = true; } 
+            else if (destState.query === '') { destUnitId = findMatches(getDefaultDestAbbrev(srcUnitId, unitDB[srcUnitId].cat))[0]?.unitId; isPreview = true; } 
+            else return; 
+        }
+        if (!destUnitId || unitDB[srcUnitId].cat !== unitDB[destUnitId].cat) return;
+        const outVal = doMath(val, srcUnitId, destUnitId), formatted = (outVal < 0.000001 || outVal > 999999999) ? outVal.toExponential(4) : parseFloat(outVal.toPrecision(8)).toString();
+        resultDisplay.textContent = `${formatted} ${unitDB[destUnitId].display}`;
+        if (isPreview) resultDisplay.classList.add('preview'); resultDisplay.classList.add('show');
+    }
+
+    function commitToHistory() {
+        const val = parseFloat(numIn.value);
+        if (isNaN(val) || !srcState.acceptedUnit || !destState.acceptedUnit) return;
+        const src = unitDB[srcState.acceptedUnit], dest = unitDB[destState.acceptedUnit];
+        if (src.cat !== dest.cat) { resultDisplay.classList.remove('preview'); resultDisplay.textContent = `Hmm, mismatched categories.`; resultDisplay.classList.add('error', 'show', 'bounce'); return; }
+        const outVal = doMath(val, srcState.acceptedUnit, destState.acceptedUnit), formatted = (outVal < 0.000001 || outVal > 999999999) ? outVal.toExponential(4) : parseFloat(outVal.toPrecision(8)).toString();
+        const item = document.createElement('div'); item.className = 'history-item';
+        item.innerHTML = `<span class="src-part">${numIn.value} ${srcState.input.value}</span><span class="equals">=</span><span class="dest-part">${formatted} ${destState.input.value}</span>`;
+        historyContainer.prepend(item);
+        numIn.value = ''; srcState.input.value = ''; destState.input.value = ''; srcState.query = ''; destState.query = ''; srcState.acceptedUnit = null; destState.acceptedUnit = null;
+        updateUI(srcState); updateUI(destState); updateMeasure(numIn, numMeasure, null); numIn.focus();
+        resultDisplay.classList.remove('preview'); resultDisplay.classList.add('bounce'); setTimeout(() => { resultDisplay.classList.remove('bounce'); calculate(); }, 400);
+    }
+
+    numIn.addEventListener('input', () => {
+        let match = numIn.value.match(/^([-0-9.]+)([a-zA-Z$€£¥₹]+)$/);
+        if (match) { numIn.value = match[1]; srcState.input.value = match[2]; srcState.query = match[2]; srcState.matches = findMatches(srcState.query); srcState.input.focus(); updateUI(srcState); }
+        updateMeasure(numIn, numMeasure, null); calculate();
+    });
+    numIn.addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (numIn.value) srcState.input.focus(); } });
+    srcState.input.addEventListener('input', (e) => handleUnitInputEvent(e, srcState));
+    srcState.input.addEventListener('keydown', (e) => handleUnitKeydown(e, srcState, destState.input, numIn, false));
+    destState.input.addEventListener('input', (e) => handleUnitInputEvent(e, destState));
+    destState.input.addEventListener('keydown', (e) => handleUnitKeydown(e, destState, null, srcState.input, true));
+  })(); } catch (e) { console.error('Units converter failed to init', e); }
+
+
+  /* --- MERGE --- */
+  try { (function() {
+    let queue = [];
+    const list = document.getElementById('mergeFileList'), btn = document.getElementById('mergeBtn');
+    function render() {
+      btn.classList.toggle('is-empty', !queue.length);
+      if(!queue.length) { list.innerHTML = '<li class="empty-state">No files yet — add PDFs above.</li>'; return; }
+      list.innerHTML = queue.map((q, i) => `<li class="file-row"><span class="drag-handle">&#8942;&#8942;</span><span class="file-info"><p class="file-name">${escapeHtml(q.file.name)}</p><p class="file-size">${formatBytes(q.file.size)}</p></span><span class="file-actions"><button type="button" class="icon-btn" data-action="remove" data-idx="${i}">&times;</button></span></li>`).join('');
+    }
+    wireDropzone(document.getElementById('mergeDropzone'), document.getElementById('mergeFileInput'), document.getElementById('mergeBrowseBtn'), files => {
+      Array.from(files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')).forEach(file => queue.push({ id: Math.random().toString(), file }));
+      render();
+    });
+    list.addEventListener('click', e => { if (e.target.dataset.action === 'remove') { queue.splice(e.target.dataset.idx, 1); render(); } });
+    if (typeof Sortable !== 'undefined') {
+      new Sortable(list, { handle: '.drag-handle', animation: 150, onEnd: e => { queue.splice(e.newIndex, 0, queue.splice(e.oldIndex, 1)[0]); render(); } });
+    }
+    btn.addEventListener('click', async () => {
+      if(!queue.length) return; btn.disabled = true; btn.textContent = 'Merging…';
+      try {
+        const out = await PDFLib.PDFDocument.create();
+        for (const q of queue) {
+          const src = await PDFLib.PDFDocument.load(await q.file.arrayBuffer(), { ignoreEncryption: true });
+          (await out.copyPages(src, src.getPageIndices())).forEach(p => out.addPage(p));
+        }
+        triggerDownload(new Blob([await out.save()], { type: 'application/pdf' }), 'merged.pdf');
+      } catch (e) { alert('Merge failed: ' + e.message); } finally { btn.disabled = false; btn.textContent = 'Merge & Download'; }
+    });
+    render();
+  })(); } catch (e) { console.error('Merge failed to init', e); }
+
+  /* --- REORDER --- */
+  try { (function() {
+    let pages = [];
+    const grid = document.getElementById('thumbGrid'), btn = document.getElementById('reorderExportBtn');
+    function render() {
+      btn.classList.toggle('is-empty', !pages.length);
+      if(!pages.length) { grid.innerHTML = '<p class="empty-state">No pages yet — add PDFs above.</p>'; return; }
+      grid.innerHTML = pages.map((p, i) => `<div class="thumb-card" data-idx="${i}"><button class="thumb-remove" data-action="remove" data-idx="${i}">&times;</button><img src="${p.imgSrc}"><span class="thumb-badge">${i+1}</span></div>`).join('');
+    }
+    wireDropzone(document.getElementById('reorderDropzone'), document.getElementById('reorderFileInput'), document.getElementById('reorderBrowseBtn'), async files => {
+      const pdfFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+      if (!pdfFiles.length) return;
+      grid.innerHTML = '<p class="empty-state">Loading pages...</p>';
+      for (const file of pdfFiles) {
+        const srcPdf = await PDFLib.PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i);
+          const viewport = page.getViewport({ scale: 0.5 });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          pages.push({ srcPdf, pageIdx: i - 1, imgSrc: canvas.toDataURL('image/jpeg', 0.8) });
+        }
+      }
+      render();
+    });
+    grid.addEventListener('click', e => {
+      if (e.target.dataset.action === 'remove') {
+        pages.splice(parseInt(e.target.dataset.idx, 10), 1);
+        render();
+      }
+    });
+    if (typeof Sortable !== 'undefined') {
+      new Sortable(grid, { animation: 150, onEnd: e => { pages.splice(e.newIndex, 0, pages.splice(e.oldIndex, 1)[0]); render(); } });
+    }
+    btn.addEventListener('click', async () => {
+      if(!pages.length) return;
+      btn.disabled = true; btn.textContent = 'Generating PDF…';
+      try {
+        const outPdf = await PDFLib.PDFDocument.create();
+        for (const p of pages) {
+          const [copiedPage] = await outPdf.copyPages(p.srcPdf, [p.pageIdx]);
+          outPdf.addPage(copiedPage);
+        }
+        triggerDownload(new Blob([await outPdf.save()], { type: 'application/pdf' }), 'reordered.pdf');
+      } catch (e) { alert('Export failed: ' + e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Download reordered PDF'; }
+    });
+  })(); } catch (e) { console.error('Reorder failed to init', e); }
+
+  /* --- CONVERT FILES --- */
+  try { (function() {
+    let curr = null; const info = document.getElementById('cvFileInfo'), acts = document.getElementById('cvActions'), err = document.getElementById('cvError');
+    const IMGS = ['png','jpg','jpeg','webp','bmp','svg','heic','heif','gif'], DOCS = ['pdf','txt','md'];
+    function setFile(f) {
+      curr = f; if(!f) { info.hidden = true; acts.innerHTML = ''; err.hidden = true; return; }
+      info.hidden = false; document.getElementById('cvFileName').textContent = f.name; document.getElementById('cvFileMeta').textContent = formatBytes(f.size);
+      const ext = getExt(f.name);
+      if (IMGS.includes(ext)) acts.innerHTML = `<button class="format-btn" data-fmt="png">PNG</button><button class="format-btn" data-fmt="jpeg">JPEG</button><button class="format-btn" data-fmt="webp">WEBP</button><button class="format-btn blurred" disabled>GIF</button><button class="format-btn blurred" disabled>HEIC</button>`;
+      else if (DOCS.includes(ext)) acts.innerHTML = ext === 'pdf' ? `<button class="format-btn" data-fmt="md">MD</button><button class="format-btn" data-fmt="txt">TXT</button>` : `<button class="format-btn" data-fmt="pdf">PDF</button>`;
+      else { err.hidden = false; err.textContent = "Unsupported file type."; }
+    }
+    wireDropzone(document.getElementById('cvDropzone'), document.getElementById('cvFileInput'), document.getElementById('cvBrowseBtn'), files => setFile(files[0]));
+    document.getElementById('cvClearBtn').addEventListener('click', () => setFile(null));
+    acts.addEventListener('click', async e => {
+      const btn = e.target.closest('.format-btn'); if(!btn || btn.disabled || !curr) return;
+      const fmt = btn.dataset.fmt, base = curr.name.replace(/\.[^.]+$/, ''), orig = btn.textContent; btn.disabled = true; btn.textContent = '…';
+      try {
+        if (['png','jpeg','webp'].includes(fmt)) {
+          let b = curr; if (['heic','heif'].includes(getExt(curr.name))) b = [].concat(await heic2any({ blob: curr, toType: 'image/png' }))[0];
+          const img = await createImageBitmap(b), c = document.createElement('canvas'), ctx = c.getContext('2d');
+          c.width = img.width; c.height = img.height; if (fmt === 'jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height); }
+          ctx.drawImage(img, 0, 0); img.close();
+          triggerDownload(await new Promise(r => c.toBlob(r, `image/${fmt}`, 0.92)), `${base}.${fmt === 'jpeg' ? 'jpg' : fmt}`);
+        } else if (['md','txt'].includes(fmt)) {
+          if (typeof pdfjsLib === 'undefined') throw new Error('PDF library failed to load. Check your connection and try again.');
+          const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await curr.arrayBuffer()) }).promise, pages = [];
+          for (let i=1; i<=doc.numPages; i++) {
+            let pTxt = ''; (await (await doc.getPage(i)).getTextContent()).items.forEach(it => pTxt += (pTxt && !pTxt.endsWith(' ') ? ' ' : '') + it.str);
+            pages.push(fmt === 'md' ? `## Page ${i}\n\n${pTxt}` : `Page ${i}\n${'-'.repeat(20)}\n${pTxt}`);
+          }
+          triggerDownload(new Blob([pages.join('\n\n')], { type: 'text/plain' }), `${base}.${fmt}`);
+        } else if (fmt === 'pdf') {
+          const txt = await curr.text();
+          const outDoc = await PDFLib.PDFDocument.create();
+          const page = outDoc.addPage();
+          const font = await outDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+          page.drawText(txt, { x: 40, y: page.getHeight() - 40, size: 12, font: font, maxWidth: page.getWidth() - 80, lineHeight: 16 });
+          triggerDownload(new Blob([await outDoc.save()], { type: 'application/pdf' }), `${base}.pdf`);
+        }
+      } catch(er) { alert('Conversion error: ' + er.message); } finally { btn.disabled = false; btn.textContent = orig; }
+    });
+  })(); } catch (e) { console.error('Convert files failed to init', e); }
+
+  /* --- CLOCK --- */
+  try { (function() {
+    const big = document.getElementById('clockBig');
+    const zoneEl = document.getElementById('clockZone');
+    const worldEl = document.getElementById('clockWorld');
+    const tabClock = document.getElementById('tab-clock');
+    const z = [{l:'New York',t:'America/New_York'},{l:'London',t:'Europe/London'},{l:'Delhi',t:'Asia/Kolkata'},{l:'Tokyo',t:'Asia/Tokyo'}];
+
+    let localZoneLabel = '';
+    try { localZoneLabel = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace(/_/g, ' '); } catch(e){}
+
+    let enlarged = null; // null = showing local time big; otherwise a zone object from z
+
+    function tk() {
+      const d = new Date();
+
+      if (enlarged) {
+        const parts = d.toLocaleTimeString('en-US', {timeZone: enlarged.t, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true}).split(' ');
+        big.innerHTML = parts[0] + '<span class="ampm">' + (parts[1]||'') + '</span>';
+        zoneEl.textContent = enlarged.l;
+      } else {
+        const h = d.getHours();
+        big.innerHTML = String(h%12||12).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')+'<span class="ampm">'+(h>=12?'PM':'AM')+'</span>';
+        zoneEl.textContent = localZoneLabel;
+      }
+
+      document.getElementById('clockDate').textContent = d.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',year:'numeric'});
+      worldEl.innerHTML = z.map((x,i) => `<div class="world-chip" data-idx="${i}" title="Click to enlarge"><span class="world-time">${d.toLocaleTimeString('en-US',{timeZone:x.t,hour:'2-digit',minute:'2-digit',hour12:true})}</span><span class="world-label">${x.l}</span></div>`).join('');
+    }
+    tk(); setInterval(tk, 1000);
+
+    big.addEventListener('click', () => {
+      if (tabClock.classList.contains('simple-mode')) {
+        tabClock.classList.remove('simple-mode');
+      } else {
+        tabClock.classList.add('simple-mode');
+      }
+      enlarged = null;
+      tk();
+    });
+
+    worldEl.addEventListener('click', (e) => {
+      const chip = e.target.closest('.world-chip');
+      if (!chip) return;
+      enlarged = z[parseInt(chip.dataset.idx, 10)];
+      tabClock.classList.add('simple-mode');
+      tk();
+    });
+  })(); } catch (e) { console.error('Clock failed to init', e); }
+
+  /* --- TIMER --- */
+  try { (function() {
+    let rem = 0, intv, running = false, alarmInterval = null, permissionRequested = false;
+    const btn = document.getElementById('timerToggle'), tH = document.getElementById('tH'), tM = document.getElementById('tM'), tS = document.getElementById('tS');
+
+    [tH, tM, tS].forEach(inp => {
+        inp.addEventListener('blur', () => { if(!inp.value) inp.value = '00'; else inp.value = String(parseInt(inp.value)).padStart(2, '0'); });
+        inp.addEventListener('input', () => { if(inp.value.length > 2) inp.value = inp.value.slice(-2); });
+        inp.addEventListener('keydown', e => { if(e.key === 'Enter') startTimer(); });
+    });
+
+    function setInputsReadonly(isRO) { tH.disabled = isRO; tM.disabled = isRO; tS.disabled = isRO; }
+    
+    function stopAlarm() {
+        clearInterval(alarmInterval); alarmInterval = null; btn.textContent = 'Start'; running = false;
+        tH.value = '00'; tM.value = '00'; tS.value = '00';
+    }
+
+    function tk() { 
+        if(rem <= 0) { 
+            clearInterval(intv); setInputsReadonly(false);
+            btn.textContent = 'Stop Alarm'; 
+            tH.value = '00'; tM.value = '00'; tS.value = '00';
+            playBeep(); alarmInterval = setInterval(playBeep, 1200);
+            if ('Notification' in window && Notification.permission === 'granted') new Notification("Timer finished!");
+            return; 
+        } 
+        rem--; 
+        tH.value = String(Math.floor(rem/3600)).padStart(2,'0'); 
+        tM.value = String(Math.floor((rem%3600)/60)).padStart(2,'0'); 
+        tS.value = String(rem%60).padStart(2,'0');
+    }
+
+    function startTimer() {
+        if (!permissionRequested && 'Notification' in window) { Notification.requestPermission(); permissionRequested = true; }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (alarmInterval) { stopAlarm(); return; }
+
+        if(running) { 
+            clearInterval(intv); btn.textContent = 'Resume'; running = false; setInputsReadonly(false);
+        } else {
+            if(rem === 0) rem = parseInt(tH.value||0)*3600 + parseInt(tM.value||0)*60 + parseInt(tS.value||0);
+            if(rem > 0) { 
+                running = true; btn.textContent = 'Pause'; setInputsReadonly(true);
+                intv = setInterval(tk, 1000); 
+            }
+        }
+    }
+
+    btn.addEventListener('click', startTimer);
+    document.getElementById('timerReset').addEventListener('click', () => { 
+        clearInterval(intv); if(alarmInterval) clearInterval(alarmInterval); alarmInterval = null;
+        running = false; rem = 0; btn.textContent = 'Start'; setInputsReadonly(false);
+        tH.value = '00'; tM.value = '00'; tS.value = '00';
+    });
+  })(); } catch (e) { console.error('Timer failed to init', e); }
+
+  /* --- ALARM --- */
+  try { (function() {
+      const h = document.getElementById('aH'), m = document.getElementById('aM'), ampm = document.getElementById('aAmPm'), btn = document.getElementById('alarmToggle');
+      let intv, active = false, ringing = false, ringIntv, permissionRequested = false;
+
+      [h, m].forEach(inp => {
+          inp.addEventListener('blur', () => { if(!inp.value) inp.value = '00'; else inp.value = String(parseInt(inp.value)).padStart(2, '0'); });
+          inp.addEventListener('input', () => { if(inp.value.length > 2) inp.value = inp.value.slice(-2); });
+      });
+
+      function setInputsReadonly(isRO) { h.disabled = isRO; m.disabled = isRO; ampm.disabled = isRO; }
+
+      function checkAlarm() {
+          const now = new Date();
+          let targetH = parseInt(h.value) % 12; if (ampm.value === 'PM') targetH += 12;
+          if (now.getHours() === targetH && now.getMinutes() === parseInt(m.value) && now.getSeconds() === 0) {
+              clearInterval(intv); ringing = true; btn.textContent = 'Stop Alarm';
+              playBeep(); ringIntv = setInterval(playBeep, 1200);
+              if ('Notification' in window && Notification.permission === 'granted') new Notification("Alarm Ringing!");
+          }
+      }
+
+      btn.addEventListener('click', () => {
+          if (!permissionRequested && 'Notification' in window) { Notification.requestPermission(); permissionRequested = true; }
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+
+          if (ringing) {
+              clearInterval(ringIntv); ringing = false; active = false;
+              btn.textContent = 'Set Alarm'; setInputsReadonly(false);
+          } else if (active) {
+              clearInterval(intv); active = false;
+              btn.textContent = 'Set Alarm'; setInputsReadonly(false);
+          } else {
+              active = true; btn.textContent = 'Cancel Alarm'; setInputsReadonly(true);
+              intv = setInterval(checkAlarm, 1000);
+          }
+      });
+  })(); } catch (e) { console.error('Alarm failed to init', e); }
+
+  /* --- STOPWATCH --- */
+  try { (function() {
+    let st=0, el=0, intv, run=false, laps=[];
+    const big = document.getElementById('swBig'), bTog = document.getElementById('swToggle'), lst = document.getElementById('swLaps');
+    function fmt(ms) { const d=new Date(ms); return String(d.getUTCMinutes()).padStart(2,'0')+':'+String(d.getUTCSeconds()).padStart(2,'0')+'.'+String(Math.floor(d.getUTCMilliseconds()/10)).padStart(2,'0'); }
+    function tk() { el = Date.now()-st; big.textContent = fmt(el); }
+    bTog.addEventListener('click', () => {
+      if(run) { clearInterval(intv); run=false; bTog.textContent='Resume'; }
+      else { st = Date.now()-el; intv=setInterval(tk, 47); run=true; bTog.textContent='Stop'; }
+    });
+    document.getElementById('swLap').addEventListener('click', () => { if(run){ laps.unshift(el); lst.innerHTML = laps.map((l,i) => `<div><span>Lap ${laps.length-i}</span><span>${fmt(l)}</span></div>`).join(''); } });
+    document.getElementById('swReset').addEventListener('click', () => { clearInterval(intv); run=false; el=0; laps=[]; bTog.textContent='Start'; big.textContent='00:00.00'; lst.innerHTML=''; });
+    big.addEventListener('click', () => document.getElementById('tab-stopwatch').classList.toggle('simple-mode'));
+  })(); } catch (e) { console.error('Stopwatch failed to init', e); }
+
+})();
+</script>
+
+<script type="module" crossorigin="anonymous">
+  import SpeedTest from 'https://cdn.jsdelivr.net/npm/@cloudflare/speedtest/+esm';
+  
+  const path = document.getElementById('speedGaugePath'),
+        pEl = document.getElementById('speedPing'),
+        dEl = document.getElementById('speedDown'),
+        uEl = document.getElementById('speedUp'),
+        speedPhase = document.getElementById('speedPhase'),
+        progCont = document.getElementById('speedProgressCont'),
+        progFill = document.getElementById('speedProgress'),
+        runBtn = document.getElementById('speedRunBtn'),
+        noteEl = document.getElementById('speedNote');
+
+  // Arc gauge fill state
+  let gTarg = 0, gCur = 0, gVel = 0;
+  // Smoothed on-screen numbers, so incoming samples ease in instead of jumping/flashing
+  let downTarg = 0, downCur = 0, downVel = 0;
+  let upTarg = 0, upCur = 0, upVel = 0;
+  let finished = true; // true whenever no test is actively running
+
+  function ease(cur, targ, vel) {
+    vel = (vel + (targ - cur) * 0.14) * 0.72;
+    return [cur + vel, vel];
+  }
+
+  function anim() {
+    [gCur, gVel] = ease(gCur, gTarg, gVel);
+    const max = Math.max(10, gTarg * 1.2), pct = Math.max(0, Math.min(1, gCur / max));
+    path.style.strokeDashoffset = 235.6 * (1 - (isNaN(pct) ? 0 : pct));
+
+    if (!finished) {
+      [downCur, downVel] = ease(downCur, downTarg, downVel);
+      [upCur, upVel] = ease(upCur, upTarg, upVel);
+      dEl.textContent = (downTarg > 0.05 || downCur > 0.05) ? Math.max(0, downCur).toFixed(1) : '—';
+      uEl.textContent = (upTarg > 0.05 || upCur > 0.05) ? Math.max(0, upCur).toFixed(1) : '—';
+    }
+    requestAnimationFrame(anim);
+  }
+  requestAnimationFrame(anim);
+
+  function resetDisplay() {
+    gTarg = gCur = gVel = 0;
+    downTarg = downCur = downVel = 0;
+    upTarg = upCur = upVel = 0;
+    pEl.textContent = '—'; dEl.textContent = '—'; uEl.textContent = '—';
+  }
+
+  function setFinal(download, upload, latency) {
+    downTarg = downCur = download;
+    upTarg = upCur = upload;
+    gTarg = gCur = Math.max(download, upload);
+    dEl.textContent = download.toFixed(1);
+    uEl.textContent = isNaN(upload) ? 'N/A' : upload.toFixed(1);
+    pEl.textContent = Math.round(latency) + ' ms';
+  }
+
+  async function fallbackSpeedTest(btnEl, pIntv) {
+    pEl.textContent = '...';
+    try {
+      let t0 = performance.now();
+      await fetch('https://cloudflare.com/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' });
+      let ping = performance.now() - t0; pEl.textContent = Math.round(ping) + ' ms';
+      speedPhase.textContent = 'Testing Download...';
+      t0 = performance.now();
+      const resp = await fetch('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js?_cb=' + Date.now());
+      const blob = await resp.blob();
+      let mbps = (blob.size * 8 / 1000000) / ((performance.now() - t0) / 1000);
+
+      // Rough upload estimate: time a same-size POST back to a CORS-friendly echo
+      // endpoint. If that's blocked too (common in sandboxed embeds), fall back to
+      // labeling it unavailable rather than showing a bare, unexplained "N/A".
+      let upMbps = NaN;
+      try {
+        const payload = new Blob([new Uint8Array(2_000_000)]);
+        const tUp0 = performance.now();
+        await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: payload, cache: 'no-store' });
+        upMbps = (payload.size * 8 / 1000000) / ((performance.now() - tUp0) / 1000);
+      } catch (upErr) { /* leave upMbps as NaN — reported as unavailable below */ }
+
+      finished = true;
+      clearInterval(pIntv);
+      downTarg = downCur = mbps; gTarg = gCur = mbps;
+      dEl.textContent = mbps.toFixed(1);
+      if (!isNaN(upMbps) && upMbps > 0) { uEl.textContent = upMbps.toFixed(1); upTarg = upCur = upMbps; }
+      else { uEl.textContent = 'N/A'; noteEl.hidden = false; noteEl.textContent = 'Limited test — upload speed isn\u2019t measurable in this environment.'; }
+      progFill.style.width = '100%'; speedPhase.textContent = 'Test Complete';
+    } catch(e) {
+      finished = true;
+      clearInterval(pIntv);
+      noteEl.hidden = false; noteEl.textContent = 'Test unavailable. Check network restrictions.';
+      progCont.style.display = 'none'; speedPhase.textContent = 'Ready to test';
+    }
+    btnEl.disabled = false; btnEl.textContent = 'Run again';
+  }
+
+  runBtn.addEventListener('click', function() {
+    this.disabled = true; this.textContent = 'Testing…';
+    finished = false;
+    resetDisplay();
+    noteEl.hidden = true;
+    speedPhase.textContent = 'Testing Ping...';
+
+    progCont.style.display = 'block'; progFill.style.width = '0%';
+    let fakeProgress = 0;
+    // Cap the fake progress short of 100% — only a real completion should fill the bar all the way,
+    // so the bar and the "Test Complete" label always agree.
+    const pIntv = setInterval(() => { fakeProgress += 1; progFill.style.width = Math.min(96, (fakeProgress / 220) * 100) + '%'; }, 100);
+
+    try {
+      const test = new SpeedTest();
+      test.onResultsChange = () => {
+          if (finished) return; // ignore any late events that arrive after we've already finalized
+          const s = test.results.getSummary();
+          if (s.latency) pEl.textContent = Math.round(s.latency) + ' ms';
+          if (s.upload && s.upload > 0) {
+              speedPhase.textContent = 'Testing Upload...';
+              upTarg = s.upload / 1e6; downTarg = s.download / 1e6; gTarg = upTarg;
+          } else if (s.download && s.download > 0) {
+              speedPhase.textContent = 'Testing Download...';
+              downTarg = s.download / 1e6; gTarg = downTarg;
+          } else {
+              speedPhase.textContent = 'Testing Ping...';
+          }
+      };
+      test.onFinish = () => {
+          const s = test.results.getSummary();
+          // Guard against a premature/partial finish event — only declare completion once every metric is in.
+          if (s.download == null || s.upload == null || s.latency == null) return;
+          finished = true;
+          clearInterval(pIntv);
+          progFill.style.width = '100%';
+          speedPhase.textContent = 'Test Complete';
+          setFinal(s.download / 1e6, s.upload / 1e6, s.latency);
+          this.disabled = false; this.textContent = 'Run again';
+      };
+      test.onError = () => fallbackSpeedTest(this, pIntv);
+    } catch (e) { fallbackSpeedTest(this, pIntv); }
+  });
+</script>
+</body>
+</html>
