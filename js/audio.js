@@ -3,6 +3,7 @@ let audioCtx, isMuted = false;
 document.querySelectorAll('.muteToggle').forEach(btn => {
     btn.addEventListener('click', () => {
         isMuted = !isMuted;
+        document.querySelectorAll('.muteToggle').forEach(b => b.classList.toggle('muted', isMuted));
         document.querySelectorAll('.icon-unmuted').forEach(el => el.hidden = isMuted);
         document.querySelectorAll('.icon-muted').forEach(el => el.hidden = !isMuted);
     });

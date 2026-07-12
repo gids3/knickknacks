@@ -29,7 +29,8 @@ try { (function() {
   }
   tk(); setInterval(tk, 1000);
 
-  big.addEventListener('click', () => {
+  big.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (tabClock.classList.contains('simple-mode')) {
       tabClock.classList.remove('simple-mode');
     } else {
@@ -37,6 +38,14 @@ try { (function() {
     }
     enlarged = null;
     tk();
+  });
+
+  tabClock.addEventListener('click', (e) => {
+    if (tabClock.classList.contains('simple-mode') && e.target !== big && !e.target.closest('.world-chip') && !e.target.closest('.time-controls')) {
+      tabClock.classList.remove('simple-mode');
+      enlarged = null;
+      tk();
+    }
   });
 
   worldEl.addEventListener('click', (e) => {

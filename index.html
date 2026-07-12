@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232452E8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 3H3v18h18V3zM9 21V9h12M3 15h6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pliant:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -186,23 +186,21 @@
 
   <section class="tab-panel" id="tab-speed" hidden>
     <div class="panel speed-panel">
-      <div class="gauge-container">
-        <svg class="gauge-svg" viewBox="0 0 200 110">
-          <path d="M 20 95 A 75 75 0 0 1 180 95" fill="none" stroke="var(--border)" stroke-width="18" stroke-linecap="round"/>
-          <path id="speedGaugePath" d="M 20 95 A 75 75 0 0 1 180 95" fill="none" stroke="var(--accent)" stroke-width="18" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6"/>
-        </svg>
-        <div class="gauge-text-wrap" id="speedGaugeTextWrap">
-          <div class="gauge-row"><span class="gauge-value" id="speedDown">—</span><span class="gauge-arrow">↓</span></div>
-          <div class="gauge-row"><span class="gauge-value" id="speedUp">—</span><span class="gauge-arrow">↑</span></div>
-          <div class="gauge-unit">Mbps</div>
-        </div>
+      <div class="speed-graph-wrap">
+        <canvas id="speedCanvas"></canvas>
       </div>
-      <div class="gauge-ping">Ping <span id="speedPing">—</span></div>
+      <div class="speed-legend">
+        <span class="speed-legend-item"><span class="speed-legend-dot" style="background:#5C7CFA"></span>Download</span>
+        <span class="speed-legend-item"><span class="speed-legend-dot" style="background:#9775FA"></span>Upload</span>
+      </div>
+
+      <div class="speed-stats">
+        <div class="speed-stat"><span class="speed-stat-label">Ping</span><span class="speed-stat-value" id="speedPing">&mdash;</span></div>
+        <div class="speed-stat"><span class="speed-stat-label">Download</span><span class="speed-stat-value" id="speedDown">&mdash;</span></div>
+        <div class="speed-stat"><span class="speed-stat-label">Upload</span><span class="speed-stat-value" id="speedUp">&mdash;</span></div>
+      </div>
 
       <div class="speed-phase" id="speedPhase">Ready to test</div>
-      <div class="progress-bar-container" id="speedProgressCont">
-        <div class="progress-bar-fill" id="speedProgress"></div>
-      </div>
 
       <button type="button" id="speedRunBtn" class="btn-speed">Start test</button>
       <p class="note" id="speedNote" hidden></p>
@@ -211,11 +209,6 @@
 
   <p class="site-note" id="siteNote" hidden>Files stay on this device — nothing is uploaded.</p>
 </main>
-
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" crossorigin="anonymous" onerror="console.error('Failed to load pdf-lib from unpkg')"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Sortable from jsdelivr')"></script>
-<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous" onerror="console.error('Failed to load pdfjs-dist from unpkg')"></script>
-<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js" crossorigin="anonymous" onerror="console.error('Failed to load heic2any from jsdelivr')"></script>
 
 <script type="module" src="js/app.js"></script>
 </body>

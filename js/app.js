@@ -1,14 +1,62 @@
 import './units.js';
-import './pdf.js';
-import './converter.js';
 import './clock.js';
 import './timer.js';
 import './alarm.js';
 import './stopwatch.js';
-import './speed.js';
 
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+/* --- Lazy Script Loader --- */
+const _scriptCache = {};
+function loadScript(url) {
+  if (_scriptCache[url]) return _scriptCache[url];
+  _scriptCache[url] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url;
+    s.crossOrigin = 'anonymous';
+    s.onload = resolve;
+    s.onerror = () => { delete _scriptCache[url]; reject(new Error('Failed to load ' + url)); };
+    document.head.appendChild(s);
+  });
+  return _scriptCache[url];
+}
+function loadScripts(urls) { return Promise.all(urls.map(loadScript)); }
+
+const PDF_SCRIPTS = [
+  'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+  'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
+  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
+];
+const CONVERT_SCRIPTS = [
+  'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
+  'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js',
+];
+
+function setupPdfWorker() {
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+}
+
+const _tabLoads = {};
+function loadTabModule(tabName) {
+  if (tabName === 'merge' || tabName === 'reorder') {
+    if (!_tabLoads.pdf) {
+      _tabLoads.pdf = loadScripts(PDF_SCRIPTS)
+        .then(() => { setupPdfWorker(); return import('./pdf.js'); })
+        .catch(e => { console.error('PDF load failed', e); delete _tabLoads.pdf; });
+    }
+  } else if (tabName === 'convert') {
+    if (!_tabLoads.converter) {
+      _tabLoads.converter = loadScripts(CONVERT_SCRIPTS)
+        .then(() => { setupPdfWorker(); return import('./converter.js'); })
+        .catch(e => { console.error('Converter load failed', e); delete _tabLoads.converter; });
+    }
+  } else if (tabName === 'speed') {
+    if (!_tabLoads.speed) {
+      _tabLoads.speed = import('./speed.js')
+        .catch(e => { console.error('Speed load failed', e); delete _tabLoads.speed; });
+    }
+  }
 }
 
 /* --- Light/Dark Theme Setup --- */
@@ -43,6 +91,7 @@ function activateTab(tabName, focusInput) {
   tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
   document.querySelectorAll('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + tabName);
   siteNote.hidden = !fileBasedTabs.includes(tabName);
+  loadTabModule(tabName);
   if (tabName === DEFAULT_TAB && focusInput) document.getElementById('num-in').focus();
   return tabName;
 }

@@ -4,6 +4,19 @@ import { ensureAudioContext, playBeep } from './audio.js';
 try { (function() {
   let rem = 0, intv, running = false, alarmInterval = null, permissionRequested = false;
   const btn = document.getElementById('timerToggle'), tH = document.getElementById('tH'), tM = document.getElementById('tM'), tS = document.getElementById('tS');
+  const tabTimer = document.getElementById('tab-timer');
+  const timerInputs = document.getElementById('timerInputs');
+
+  timerInputs.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    e.stopPropagation();
+    if (!running) tabTimer.classList.toggle('simple-mode');
+  });
+  tabTimer.addEventListener('click', (e) => {
+    if (tabTimer.classList.contains('simple-mode') && !timerInputs.contains(e.target) && !e.target.closest('.time-controls') && !e.target.closest('.controls-row')) {
+      tabTimer.classList.remove('simple-mode');
+    }
+  });
 
   [tH, tM, tS].forEach(inp => {
       inp.addEventListener('blur', () => { if(!inp.value) inp.value = '00'; else inp.value = String(parseInt(inp.value)).padStart(2, '0'); });
