@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Knickknacks</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232452E8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 3H3v18h18V3zM9 21V9h12M3 15h6'/%3E%3C/svg%3E">
@@ -147,9 +147,9 @@
   <section class="tab-panel" id="tab-files" hidden>
     <div class="panel">
       <div class="dropzone" id="cvDropzone">
-        <p>Drop an image, PDF, TXT, or MD, or</p>
+        <p>Drop an image, PDF, TXT, MD, HTML, DOCX, XLSX, PPTX, or TIFF, or</p>
         <button type="button" id="cvBrowseBtn" class="btn-browse">Choose file</button>
-        <input type="file" id="cvFileInput" accept="image/*,.heic,.heif,.pdf,.txt,.md" hidden>
+        <input type="file" id="cvFileInput" accept="image/*,.heic,.heif,.tif,.tiff,.pdf,.txt,.md,.html,.htm,.docx,.xlsx,.pptx" hidden>
       </div>
       <div id="cvFileInfo" class="file-row" hidden style="margin-top:16px;">
         <span class="file-info"><p class="file-name" id="cvFileName">—</p><p class="file-size" id="cvFileMeta">—</p></span>

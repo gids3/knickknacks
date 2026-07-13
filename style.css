@@ -355,6 +355,12 @@
   .format-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .format-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .format-btn.blurred { filter: blur(1.5px); opacity: 0.4; pointer-events: none; }
+  .format-btn .fmt-size { font-weight: 400; font-size: 13px; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
+  .format-btn.calcing .fmt-size::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 2px; border: 2px solid var(--muted); border-top-color: transparent; border-radius: 50%; vertical-align: middle; animation: fmt-spin 0.7s linear infinite; }
+  .format-btn.calcing .fmt-size { font-size: 0; }
+  .format-btn.calcing .fmt-size::before { content: '…'; font-size: 13px; }
+  .format-btn.failed .fmt-size { color: var(--danger, #c0392b); }
+  @keyframes fmt-spin { to { transform: rotate(360deg); } }
 
   /* Time/Timer/Stopwatch common */
   .time-panel { text-align: center; }
@@ -480,9 +486,110 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     z-index: 1001;
     transition: transform .15s ease, background .15s ease;
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   }
   .home-fab:hover { transform: translateX(-50%) scale(1.06); }
   .home-fab:active { transform: translateX(-50%) scale(0.95); }
   .home-fab svg { width: 24px; height: 24px; }
   .tab-panel:has(.panel.fs-active) ~ .home-fab,
   .home-fab[hidden] { display: none; }
+
+  /* ============================================================
+     Mobile / small-screen adjustments
+     Desktop layout (>= 821px) is left completely untouched.
+     ============================================================ */
+
+  /* --- Tablet & phone: keep the tab bar on a single scrollable row --- */
+  @media (max-width: 820px) {
+    .tabbar {
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      overflow-x: auto;
+      gap: 4px;
+      padding-bottom: 8px;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .tabbar::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 0 0 auto; scroll-snap-align: start; }
+
+    /* Unroll the Convert dropdown into inline tabs so "Files" is reachable
+       without hover (touch devices never fire :hover). */
+    .tab-dropdown { display: inline-flex; }
+    .tab-dropdown > .tab-btn { display: none; }
+    .tab-dropdown-menu {
+      position: static;
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      flex-direction: row;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      min-width: 0;
+    }
+    .tab-dropdown-item {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+    .tab-dropdown-item.active { background: var(--accent); color: #fff; }
+  }
+
+  /* --- Phones: scale down type and spacing so nothing overflows --- */
+  @media (max-width: 640px) {
+    body { padding: 20px 12px 84px; }
+
+    .topbar { margin-bottom: 22px; }
+    .topbar h1 { font-size: 32px; }
+
+    .home-grid {
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 12px;
+    }
+    .home-tile { padding: 16px 10px; gap: 10px; }
+    .home-tile-icon { width: 44px; height: 44px; border-radius: 13px; }
+    .home-tile-icon svg { width: 24px; height: 24px; }
+    .home-tile-label { font-size: 13px; }
+
+    .panel { padding: 16px; }
+
+    .palette {
+      font-size: clamp(28px, 9vw, 48px);
+      padding: 16px 18px;
+      gap: 8px;
+    }
+    .result-container {
+      font-size: clamp(20px, 6vw, 32px);
+      white-space: normal;
+      word-break: break-word;
+      height: auto;
+      min-height: 40px;
+      padding: 0 8px;
+    }
+    .result-container.preview { font-size: clamp(20px, 6vw, 32px); }
+    .result-container.error { font-size: clamp(15px, 4.5vw, 24px); }
+    .hint-text { font-size: 15px; }
+
+    .time-controls { top: 12px; right: 12px; }
+    .clock-big, .clock-edit-group { font-size: clamp(28px, 11vw, 32px); }
+    .clock-edit-group input { width: 2.2ch; }
+
+    .speed-graph-wrap canvas { height: 160px; }
+    .speed-stats { gap: 20px; }
+
+    .dropzone p { font-size: 18px; }
+  }
+
+  /* Use dynamic viewport height so fullscreen/expanded views aren't cut
+     off by mobile browser toolbars. */
+  @supports (height: 100dvh) {
+    .panel.fs-active,
+    .simple-mode:not([hidden]) {
+      height: 100dvh !important;
+    }
+  }

@@ -6,7 +6,7 @@ import './stopwatch.js';
 
 /* --- Lazy Script Loader --- */
 const _scriptCache = {};
-function loadScript(url) {
+export function loadScript(url) {
   if (_scriptCache[url]) return _scriptCache[url];
   _scriptCache[url] = new Promise((resolve, reject) => {
     const s = document.createElement('script');
@@ -18,7 +18,7 @@ function loadScript(url) {
   });
   return _scriptCache[url];
 }
-function loadScripts(urls) { return Promise.all(urls.map(loadScript)); }
+export function loadScripts(urls) { return Promise.all(urls.map(loadScript)); }
 
 const PDF_SCRIPTS = [
   'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
@@ -29,6 +29,10 @@ const CONVERT_SCRIPTS = [
   'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
   'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
   'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js',
+  'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js',
 ];
 
 function setupPdfWorker() {
