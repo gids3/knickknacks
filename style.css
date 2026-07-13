@@ -494,9 +494,11 @@
     bottom: 22px;
     left: 50%;
     transform: translateX(-50%);
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
+    width: auto;
+    height: 38px;
+    padding: 0 16px;
+    gap: 7px;
+    border-radius: 999px;
     background: var(--accent);
     color: #fff;
     border: none;
@@ -508,10 +510,15 @@
     z-index: 1001;
     transition: transform .15s ease, background .15s ease;
     bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
   }
   .home-fab:hover { transform: translateX(-50%) scale(1.06); }
   .home-fab:active { transform: translateX(-50%) scale(0.95); }
-  .home-fab svg { width: 24px; height: 24px; }
+  .home-fab svg { width: 18px; height: 18px; flex: none; }
+  .home-fab-label { line-height: 1; }
   .tab-panel:has(.panel.fs-active) ~ .home-fab,
   .home-fab[hidden] { display: none; }
 

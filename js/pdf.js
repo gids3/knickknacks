@@ -108,8 +108,8 @@ try { (function() {
   }
 
   function setEmptyState() {
-    if (!documents.length && !docList.querySelector('.empty-state')) {
-      docList.innerHTML = '<p class="empty-state">No PDFs yet — add files above.</p>';
+    if (!documents.length) {
+      docList.innerHTML = '';
     }
   }
 
