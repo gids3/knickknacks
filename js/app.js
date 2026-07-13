@@ -82,7 +82,7 @@ const tabButtons = document.querySelectorAll('.tab-btn');
 const siteNote = document.getElementById('siteNote');
 const fileBasedTabs = ['merge', 'reorder', 'convert'];
 const validTabs = Array.from(tabButtons).map(b => b.dataset.tab);
-const DEFAULT_TAB = 'units';
+const DEFAULT_TAB = 'home';
 
 // Renders a tab as active without touching the URL — used by both the hashchange
 // listener and the initial load, so the hash is always the single source of truth.
@@ -92,7 +92,7 @@ function activateTab(tabName, focusInput) {
   document.querySelectorAll('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + tabName);
   siteNote.hidden = !fileBasedTabs.includes(tabName);
   loadTabModule(tabName);
-  if (tabName === DEFAULT_TAB && focusInput) document.getElementById('num-in').focus();
+  if (tabName === 'units' && focusInput) document.getElementById('num-in').focus();
   return tabName;
 }
 
@@ -103,6 +103,13 @@ function activateTab(tabName, focusInput) {
 // back to just switching the panel so the tabs still work there.
 tabButtons.forEach(btn => btn.addEventListener('click', () => {
   const tabName = btn.dataset.tab;
+  if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
+  try { location.hash = tabName; }
+  catch (e) { activateTab(tabName, true); }
+}));
+
+document.querySelectorAll('.home-tile').forEach(tile => tile.addEventListener('click', () => {
+  const tabName = tile.dataset.goto;
   if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
   try { location.hash = tabName; }
   catch (e) { activateTab(tabName, true); }

@@ -14,6 +14,7 @@
   pEl.style.color = COL_PING;
   dEl.style.color = COL_DOWN;
   uEl.style.color = COL_UP;
+  const PHASE_DURATION_MS = 10000; // fixed duration for both download and upload
   let colBorder, colMuted;
   function cacheColors() {
     const s = getComputedStyle(document.documentElement);
@@ -27,7 +28,6 @@
   let testStart = 0, upStart = 0;
   let downTarg = 0, downCur = 0, downVel = 0;
   let upTarg = 0, upCur = 0, upVel = 0;
-  let pingSum = 0, pingCount = 0;
   let testRunning = false;
   let finishing = false;
   let phase = 'ping';
@@ -67,8 +67,9 @@
     const ph = h - pad.top - pad.bottom;
     ctx.clearRect(0, 0, w, h);
 
-    const lastDown = downData.length ? downData[downData.length - 1].t : 0;
-    const lastUp = upData.length ? upData[upData.length - 1].t : 0;
+    // Fixed 10s axis: both phases are time-boxed to PHASE_DURATION_MS,
+    // so download and upload always plot over the same 0-10s range and
+    // their lines end together on the right edge.
     const maxT = 10;
 
     let maxSpeed = 10;
@@ -125,6 +126,7 @@
     [downCur, downVel] = ease(downCur, downTarg, downVel);
     [upCur, upVel] = ease(upCur, upTarg, upVel);
 
+    // Clamped to 10s so both phases share the same x-range and end together.
     const t = Math.min((performance.now() - testStart) / 1000, 10);
     const upT = upStart ? Math.min((performance.now() - upStart) / 1000, 10) : 0;
 
@@ -147,7 +149,7 @@
       if (dClose && uClose) {
         downCur = downTarg; upCur = upTarg;
         dEl.textContent = downTarg > 0 ? downTarg.toFixed(1) + ' Mbps' : '\u2014';
-        uEl.textContent = upTarg > 0 ? upTarg.toFixed(1) + ' Mbps' : 'N/A';
+        uEl.textContent = upTarg > 0 ? upTarg.toFixed(1) + ' Mbps' : '\u2014';
         testRunning = false; finishing = false;
         speedPhase.textContent = 'Test Complete';
         runBtn.disabled = false; runBtn.textContent = 'Run again';
@@ -163,82 +165,135 @@
     downData = []; upData = [];
     downTarg = downCur = downVel = 0;
     upTarg = upCur = upVel = 0;
-    pingSum = 0; pingCount = 0; finishing = false;
+    finishing = false;
     upStart = 0; phase = 'ping';
     testStart = performance.now();
     pEl.textContent = '\u2014'; dEl.textContent = '\u2014'; uEl.textContent = '\u2014';
     draw();
   }
 
-  async function runUploadTest(durationMs, onSpeedUpdate) {
-    const chunkSize = 1_000_000;
+  // Runs parallel GET/POST loops against Cloudflare's speed endpoints for
+  // exactly `durationMs`, reporting a running throughput estimate as it goes.
+  // Connections are fanned out (`concurrency`) so the link is saturated the
+  // way multi-connection testers (Ookla) do it — a single sequential stream
+  // leaves headroom on the pipe and under-reports real throughput.
+  async function runTimedTransferTest(durationMs, chunkBytes, direction, onSpeedUpdate, concurrency = 6) {
     let totalBytes = 0;
+    let stopped = false;
     const start = performance.now();
     let lastReportBytes = 0;
     let lastReportTime = start;
 
-    while (performance.now() - start < durationMs) {
-      const remaining = durationMs - (performance.now() - start);
-      if (remaining <= 0) break;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), Math.min(remaining, 5000));
-      try {
-        await fetch('https://speed.cloudflare.com/__up', {
-          method: 'POST',
-          body: new Blob([new Uint8Array(chunkSize)]),
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        totalBytes += chunkSize;
-        const now = performance.now();
-        const elapsed = (now - lastReportTime) / 1000;
-        if (elapsed >= 0.5) {
-          onSpeedUpdate(((totalBytes - lastReportBytes) * 8 / 1e6) / elapsed);
-          lastReportBytes = totalBytes;
-          lastReportTime = now;
+    const worker = async () => {
+      while (!stopped) {
+        const remaining = durationMs - (performance.now() - start);
+        if (remaining <= 0) break;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), Math.min(remaining, 5000));
+        try {
+          if (direction === 'down') {
+            const resp = await fetch(`https://speed.cloudflare.com/__down?bytes=${chunkBytes}`, {
+              cache: 'no-store',
+              signal: controller.signal
+            });
+            const blob = await resp.blob();
+            totalBytes += blob.size;
+          } else {
+            await fetch('https://speed.cloudflare.com/__up', {
+              method: 'POST',
+              body: new Blob([new Uint8Array(chunkBytes)]),
+              cache: 'no-store',
+              signal: controller.signal
+            });
+            totalBytes += chunkBytes;
+          }
+        } catch (e) {
+          if (e.name !== 'AbortError') break;
+        } finally {
+          clearTimeout(timeout);
         }
-      } catch (e) {
-        if (e.name === 'AbortError') continue;
-        break;
       }
-      clearTimeout(timeout);
+    };
+
+    const workers = Array.from({ length: concurrency }, worker);
+
+    while (!stopped && performance.now() - start < durationMs) {
+      await new Promise(r => setTimeout(r, 250));
+      const now = performance.now();
+      const elapsed = (now - lastReportTime) / 1000;
+      if (elapsed >= 0.5) {
+        onSpeedUpdate(((totalBytes - lastReportBytes) * 8 / 1e6) / elapsed);
+        lastReportBytes = totalBytes;
+        lastReportTime = now;
+      }
     }
+
+    stopped = true;
+    await Promise.all(workers);
     const elapsed = (performance.now() - start) / 1000;
     return elapsed > 0 ? (totalBytes * 8 / 1e6) / elapsed : 0;
   }
 
-  async function fallbackSpeedTest(btnEl) {
-    pEl.textContent = '...';
+  const runDownloadTest = (durationMs, onSpeedUpdate) =>
+    runTimedTransferTest(durationMs, 10_000_000, 'down', onSpeedUpdate, 6);
+  const runUploadTest = (durationMs, onSpeedUpdate) =>
+    runTimedTransferTest(durationMs, 1_000_000, 'up', onSpeedUpdate, 4);
+
+  async function measurePingFallback() {
     try {
-      let t0 = performance.now();
+      const t0 = performance.now();
       await fetch('https://cloudflare.com/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' });
-      const ping = performance.now() - t0;
-      pEl.textContent = Math.round(ping) + ' ms';
-      speedPhase.textContent = 'Testing Download...';
-      t0 = performance.now();
-      const resp = await fetch('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js?_cb=' + Date.now());
-      const blob = await resp.blob();
-      const mbps = (blob.size * 8 / 1e6) / ((performance.now() - t0) / 1000);
-
-      speedPhase.textContent = 'Testing Upload...';
-      phase = 'up';
-      upStart = performance.now();
-      downTarg = mbps;
-      downData.push({ t: 0, v: mbps });
-      downData.push({ t: 10, v: mbps });
-      const upMbps = await runUploadTest(10000, (speed) => { upTarg = speed; });
-
-      upTarg = upMbps > 0 ? upMbps : 0;
-      finishing = true;
-      if (upTarg <= 0) {
-        noteEl.hidden = false;
-        noteEl.textContent = 'Limited test \u2014 upload speed isn\u2019t measurable in this environment.';
-      }
+      pEl.textContent = Math.round(performance.now() - t0) + ' ms';
     } catch (e) {
-      testRunning = false; finishing = false;
-      noteEl.hidden = false; noteEl.textContent = 'Test unavailable. Check network restrictions.';
-      speedPhase.textContent = 'Ready to test';
-      runBtn.disabled = false; runBtn.textContent = 'Run again';
+      pEl.textContent = '\u2014';
+    }
+  }
+
+  async function measureLatency() {
+    pEl.textContent = '...';
+    await new Promise((resolve) => {
+      try {
+        const test = new SpeedTest({ measurements: [{ type: 'latency', numPackets: 20 }] });
+        test.onFinish = (results) => {
+          const latency = results.getSummary().latency;
+          pEl.textContent = latency != null ? Math.round(latency) + ' ms' : '\u2014';
+          resolve();
+        };
+        test.onError = () => { measurePingFallback().then(resolve); };
+      } catch (e) {
+        measurePingFallback().then(resolve);
+      }
+    });
+  }
+
+  // Orchestrates the full run: ping, then exactly PHASE_DURATION_MS of
+  // download, then exactly PHASE_DURATION_MS of upload.
+  async function runFullTest() {
+    speedPhase.textContent = 'Testing Ping...';
+    await measureLatency();
+
+    phase = 'down';
+    testStart = performance.now();
+    speedPhase.textContent = 'Testing Download...';
+    const downMbps = await runDownloadTest(PHASE_DURATION_MS, (speed) => { downTarg = speed; });
+    downTarg = downMbps > 0 ? downMbps : 0;
+    if (!downData.length || downData[downData.length - 1].t < 10) {
+      downData.push({ t: 10, v: downTarg });
+    }
+
+    phase = 'up';
+    upStart = performance.now();
+    speedPhase.textContent = 'Testing Upload...';
+    const upMbps = await runUploadTest(PHASE_DURATION_MS, (speed) => { upTarg = speed; });
+    upTarg = upMbps > 0 ? upMbps : 0;
+
+    finishing = true;
+    if (downTarg <= 0 && upTarg <= 0) {
+      noteEl.hidden = false;
+      noteEl.textContent = 'Test unavailable. Check network restrictions.';
+    } else if (upTarg <= 0) {
+      noteEl.hidden = false;
+      noteEl.textContent = 'Limited test \u2014 upload speed isn\u2019t measurable in this environment.';
     }
   }
 
@@ -249,63 +304,18 @@
     noteEl.hidden = true;
     speedPhase.textContent = 'Testing Ping...';
     requestAnimationFrame(tick);
-
-    try {
-      const test = new SpeedTest({
-        bandwidthFinishRequestDuration: 10000,
-        measurements: [
-          { type: 'latency', numPackets: 20 },
-          { type: 'download', bytes: 1e5, count: 1, bypassMinDuration: true },
-          { type: 'download', bytes: 1e6, count: 1 },
-          { type: 'download', bytes: 5e6, count: 1 },
-          { type: 'download', bytes: 1e7, count: 1 },
-          { type: 'download', bytes: 2.5e7, count: 1 },
-          { type: 'download', bytes: 5e7, count: 1 },
-          { type: 'download', bytes: 1e8, count: 1 },
-          { type: 'download', bytes: 2.5e8, count: 1 },
-          { type: 'download', bytes: 5e8, count: 1 },
-        ]
-      });
-      test.onResultsChange = () => {
-        if (!testRunning || finishing) return;
-        const s = test.results.getSummary();
-        if (s.latency) {
-          pingSum += s.latency;
-          pingCount++;
-          pEl.textContent = Math.round(pingSum / pingCount) + ' ms';
-        }
-        if (s.download && s.download > 0) {
-          if (phase !== 'down') { phase = 'down'; testStart = performance.now(); }
-          speedPhase.textContent = 'Testing Download...';
-          downTarg = s.download / 1e6;
-        } else {
-          speedPhase.textContent = 'Testing Ping...';
-        }
-      };
-      test.onFinish = () => {
-        const s = test.results.getSummary();
-        if (s.download == null || s.latency == null) return;
-        if (pingCount > 0) {
-          pEl.textContent = Math.round(pingSum / pingCount) + ' ms';
-        } else {
-          pEl.textContent = Math.round(s.latency) + ' ms';
-        }
-        downTarg = s.download / 1e6;
-        if (downData.length && downData[downData.length - 1].t < 10) {
-          downData.push({ t: 10, v: downCur });
-        }
-        phase = 'up';
-        upStart = performance.now();
-        speedPhase.textContent = 'Testing Upload...';
-        runUploadTest(10000, (speed) => { upTarg = speed; }).then((finalSpeed) => {
-          upTarg = finalSpeed > 0 ? finalSpeed : 0;
-          finishing = true;
-        });
-      };
-      test.onError = () => { fallbackSpeedTest(this); };
-    } catch (e) { fallbackSpeedTest(this); }
+    runFullTest();
   });
 
   window.addEventListener('resize', () => { cachedSize = null; draw(); });
   document.addEventListener('fullscreenchange', () => { cachedSize = null; draw(); });
+
+  // Show the empty axes (gridlines + 0-10s labels) before any test runs, and
+  // redraw whenever the panel scrolls into view (e.g. re-selecting the tab).
+  requestAnimationFrame(() => draw());
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => {
+      if (entries.some(e => e.isIntersecting)) { cachedSize = null; draw(); }
+    }).observe(canvas);
+  }
 })();
