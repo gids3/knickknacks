@@ -5,20 +5,7 @@ import './alarm.js';
 import './stopwatch.js';
 
 /* --- Lazy Script Loader --- */
-const _scriptCache = {};
-export function loadScript(url) {
-  if (_scriptCache[url]) return _scriptCache[url];
-  _scriptCache[url] = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = url;
-    s.crossOrigin = 'anonymous';
-    s.onload = resolve;
-    s.onerror = () => { delete _scriptCache[url]; reject(new Error('Failed to load ' + url)); };
-    document.head.appendChild(s);
-  });
-  return _scriptCache[url];
-}
-export function loadScripts(urls) { return Promise.all(urls.map(loadScript)); }
+import { loadScript, loadScripts } from './util.js';
 
 const PDF_SCRIPTS = [
   'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
@@ -114,29 +101,27 @@ function activateTab(tabName, focusInput) {
 // fire on its own, so activate directly in that case. Some sandboxed embeds (e.g.
 // an about:srcdoc preview iframe) disallow URL/History changes entirely — fall
 // back to just switching the panel so the tabs still work there.
-tabButtons.forEach(btn => btn.addEventListener('click', () => {
-  let tabName = btn.dataset.tab;
-  if (tabName === 'convert') tabName = (convertView === 'files') ? 'files' : 'units';
+function navigateToTab(tabName) {
   if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
   try { location.hash = tabName; }
   catch (e) { activateTab(tabName, true); }
+}
+
+tabButtons.forEach(btn => btn.addEventListener('click', () => {
+  let tabName = btn.dataset.tab;
+  if (tabName === 'convert') tabName = (convertView === 'files') ? 'files' : 'units';
+  navigateToTab(tabName);
 }));
 
 document.querySelectorAll('.tab-dropdown-item').forEach(item => {
   item.addEventListener('click', (e) => {
     e.stopPropagation();
-    const tabName = (item.dataset.convert === 'units') ? 'units' : 'files';
-    if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
-    try { location.hash = tabName; }
-    catch (e) { activateTab(tabName, true); }
+    navigateToTab((item.dataset.convert === 'units') ? 'units' : 'files');
   });
 });
 
 document.querySelectorAll('.home-tile').forEach(tile => tile.addEventListener('click', () => {
-  const tabName = tile.dataset.goto;
-  if (location.hash.slice(1) === tabName) { activateTab(tabName, true); return; }
-  try { location.hash = tabName; }
-  catch (e) { activateTab(tabName, true); }
+  navigateToTab(tile.dataset.goto);
 }));
 
 const homeFab = document.getElementById('homeFab');
@@ -155,29 +140,6 @@ window.addEventListener('hashchange', () => activateTab(location.hash.slice(1), 
 const startTab = activateTab(location.hash.slice(1), false);
 if (location.hash.slice(1) !== startTab) {
   try { history.replaceState(null, '', '#' + startTab); } catch (e) { /* URL update unavailable in this embed; tab still activated above */ }
-}
-
-/* --- Shared Helpers --- */
-export function formatBytes(bytes) {
-  if (!bytes) return '0 KB';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
-}
-export function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-export function getExt(filename) { return filename.toLowerCase().split('.').pop() || ''; }
-export function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-export function wireDropzone(drop, input, btn, cb) {
-  drop.addEventListener('click', () => input.click());
-  btn.addEventListener('click', e => { e.stopPropagation(); input.click(); });
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); cb(e.dataTransfer.files); });
-  input.addEventListener('change', e => { cb(e.target.files); input.value = ''; });
 }
 
 // Fullscreen Logic

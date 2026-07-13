@@ -1,4 +1,4 @@
-import { formatBytes, escapeHtml, triggerDownload, wireDropzone } from './app.js';
+import { formatBytes, escapeHtml, triggerDownload, wireDropzone } from './util.js';
 
 /* --- MERGE --- */
 try { (function() {

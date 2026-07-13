@@ -1,4 +1,4 @@
-import { formatBytes, getExt, triggerDownload, wireDropzone, loadScript } from './app.js';
+import { formatBytes, getExt, triggerDownload, wireDropzone, loadScript } from './util.js';
 
 /* --- CONVERT FILES --- */
 try { (function() {
