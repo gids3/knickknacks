@@ -10,7 +10,10 @@
   const runBtn = document.getElementById('speedRunBtn');
   const noteEl = document.getElementById('speedNote');
 
-  const COL_DOWN = '#5C7CFA', COL_UP = '#9775FA';
+  const COL_DOWN = '#2374AB', COL_UP = '#2AA67A', COL_PING = '#D98E32';
+  pEl.style.color = COL_PING;
+  dEl.style.color = COL_DOWN;
+  uEl.style.color = COL_UP;
   let colBorder, colMuted;
   function cacheColors() {
     const s = getComputedStyle(document.documentElement);

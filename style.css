@@ -113,14 +113,14 @@
 
   :root {
     /* Dark Mode Palette (Default) */
-    --bg: #14161B;
-    --surface: #1C1F27;
+    --bg: #0D0E12;
+    --surface: #16181E;
     --text: #E8EAEF;
     --ghost: #666666;
     --muted: #8B93A3;
-    --border: #2B2F3A;
-    --accent: #5C7CFA;
-    --accent-soft: #1E2540;
+    --border: #262A33;
+    --accent: #2374AB;
+    --accent-soft: #132A3D;
     
     /* Unit Converter Specific */
     --preview: #4CAF50; 
@@ -132,14 +132,14 @@
   
   :root[data-theme="light"] {
     /* Light Mode Palette */
-    --bg: #EEF1F3;
+    --bg: #F0F2F5;
     --surface: #FFFFFF;
     --text: #1B1F2A;
     --ghost: #AAAAAA;
     --muted: #5B6472;
     --border: #DCE0E5;
-    --accent: #2452E8;       
-    --accent-soft: #E8EDFE;
+    --accent: #1B5A85;       
+    --accent-soft: #D9E8F4;
 
     --preview: #388E3C;
     --result: #388E3C;
