@@ -409,6 +409,8 @@
   }
   .clock-edit-group:hover { background: var(--accent-soft); transform: scale(1.02); }
   .clock-edit-group:active { transform: scale(0.98); }
+  #alarmInputs:hover { transform: none; }
+  #alarmInputs:active { transform: none; }
   .clock-edit-group input {
     width: 2.5ch;
     font: inherit;
@@ -437,8 +439,9 @@
   .fs-tip { color: var(--ghost); font-size: 14px; font-weight: 300; margin: 8px 0 0; letter-spacing: 0.3px; text-align: center; user-select: none; }
   .clock-date { color: var(--muted); margin: 8px 0 24px; font-size: 18px; font-weight: 300; }
   .clock-world { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
-  .world-chip { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background .15s; }
-  .world-chip:hover { background: var(--accent-soft); }
+  .world-chip { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background .15s, transform 0.1s; }
+  .world-chip:hover { background: var(--accent-soft); transform: scale(1.04); }
+  .world-chip:active { transform: scale(0.97); }
   .world-time { font-family: "Pliant", sans-serif; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
   .world-label { font-size: 16px; color: var(--muted); font-weight: 300; margin-top: 2px; letter-spacing: 0.5px; }
   .controls-row { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
