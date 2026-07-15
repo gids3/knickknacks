@@ -70,14 +70,17 @@ try { (function() {
       return accepted;
   }
 
+  const defaultDestinations = {
+      mass: { srcToDest: { pound: 'kg', ounce: 'kg', stone: 'kg' }, default: 'lb' },
+      length: { srcToDest: { foot: 'm', inch: 'm', mile: 'm', yard: 'm' }, default: 'ft' },
+      temp: { srcToDest: { celsius: 'f' }, default: 'c' },
+      time: { srcToDest: { minute: 'h', millisecond: 'h' }, default: 'min' },
+      currency: { srcToDest: { usd: 'eur' }, default: 'usd' },
+      volume: { srcToDest: { gallon: 'l', cup: 'l' }, default: 'gal' },
+  };
   function getDefaultDestAbbrev(srcUnitId, cat) {
-      if (cat === 'mass') return (srcUnitId === 'pound' || srcUnitId === 'ounce' || srcUnitId === 'stone') ? 'kg' : 'lb';
-      if (cat === 'length') return (srcUnitId === 'foot' || srcUnitId === 'inch' || srcUnitId === 'mile' || srcUnitId === 'yard') ? 'm' : 'ft';
-      if (cat === 'temp') return srcUnitId === 'celsius' ? 'f' : 'c';
-      if (cat === 'time') return (srcUnitId === 'minute' || srcUnitId === 'millisecond') ? 'h' : 'min';
-      if (cat === 'currency') return srcUnitId === 'usd' ? 'eur' : 'usd';
-      if (cat === 'volume') return (srcUnitId === 'gallon' || srcUnitId === 'cup') ? 'l' : 'gal';
-      return 'm';
+      const cfg = defaultDestinations[cat];
+      return cfg ? (cfg.srcToDest[srcUnitId] || cfg.default) : 'm';
   }
 
   function handleUnitInputEvent(e, state) {
@@ -108,6 +111,7 @@ try { (function() {
       } else if (e.key === 'Backspace' && state.input.value === '') { e.preventDefault(); if (prevEl) prevEl.focus(); }
   }
 
+  // fallow-ignore-next-line complexity
   function doMath(val, srcUnitId, destUnitId) {
       const src = unitDB[srcUnitId], dest = unitDB[destUnitId];
       if (src.cat === 'temp') {

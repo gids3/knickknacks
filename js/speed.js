@@ -50,6 +50,7 @@
     return cachedSize;
   }
 
+  // fallow-ignore-next-line complexity
   function niceStep(range, target) {
     if (range <= 0) return 1;
     const rough = range / target;

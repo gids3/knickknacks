@@ -10,6 +10,7 @@ try { (function() {
   function showError(msg) { err.hidden = false; err.textContent = msg; }
 
   // Which output formats a given input extension can target.
+  // fallow-ignore-next-line complexity
   function targetsFor(ext) {
     if (RASTER.includes(ext)) return [{ fmt:'png', label:'PNG' }, { fmt:'jpeg', label:'JPEG' }, { fmt:'webp', label:'WEBP' }];
     if (ext === 'pdf') return [{ fmt:'md', label:'MD' }, { fmt:'txt', label:'TXT' }];
@@ -123,34 +124,46 @@ try { (function() {
     return new Blob([await doc.save()], { type: 'application/pdf' });
   }
 
+  /* --- per-format producers --- */
+  async function produceFromPdf(fmt, f) {
+    const pages = await pdfPages(f);
+    if (fmt === 'md') return new Blob([pages.map((p, i) => `## Page ${i + 1}\n\n${p}`).join('\n\n')], { type: 'text/markdown' });
+    if (fmt === 'txt') return new Blob([pages.map((p, i) => `Page ${i}\n${'-'.repeat(20)}\n${p}`).join('\n\n')], { type: 'text/plain' });
+    throw new Error('Unsupported conversion');
+  }
+  async function produceFromText(fmt, f) {
+    if (fmt !== 'pdf') throw new Error('Unsupported conversion');
+    return textToPdf(await f.text(), f.name);
+  }
+  async function produceFromHtml(fmt, f) {
+    const ext = getExt(f.name);
+    const html = await htmlOf(f, ext);
+    if (fmt === 'txt') return new Blob([stripHtml(html)], { type: 'text/plain' });
+    if (fmt === 'md') return new Blob([await toMd(html)], { type: 'text/markdown' });
+    if (fmt === 'pdf') return textToPdf(stripHtml(html), f.name);
+    throw new Error('Unsupported conversion');
+  }
+  async function produceFromXlsx(fmt, f) {
+    if (fmt === 'csv') return new Blob([await xlsxText(f, true)], { type: 'text/csv' });
+    if (fmt === 'txt') return new Blob([await xlsxText(f, false)], { type: 'text/plain' });
+    throw new Error('Unsupported conversion');
+  }
+  async function produceFromPptx(fmt, f) {
+    const txt = await pptxText(f);
+    if (fmt === 'txt') return new Blob([txt], { type: 'text/plain' });
+    if (fmt === 'md') return new Blob([txt], { type: 'text/markdown' });
+    if (fmt === 'pdf') return textToPdf(txt, f.name);
+    throw new Error('Unsupported conversion');
+  }
   /* --- single entry point --- */
   async function produce(fmt, f) {
     const ext = getExt(f.name);
     if (RASTER.includes(ext)) return rasterTo(fmt, f);
-    if (ext === 'pdf') {
-      const pages = await pdfPages(f);
-      if (fmt === 'md') return new Blob([pages.map((p, i) => `## Page ${i + 1}\n\n${p}`).join('\n\n')], { type: 'text/markdown' });
-      if (fmt === 'txt') return new Blob([pages.map((p, i) => `Page ${i}\n${'-'.repeat(20)}\n${p}`).join('\n\n')], { type: 'text/plain' });
-    }
-    if (ext === 'txt' || ext === 'md') {
-      if (fmt === 'pdf') return textToPdf(await f.text(), f.name);
-    }
-    if (ext === 'html' || ext === 'htm' || ext === 'docx') {
-      const html = await htmlOf(f, ext);
-      if (fmt === 'txt') return new Blob([stripHtml(html)], { type: 'text/plain' });
-      if (fmt === 'md') return new Blob([await toMd(html)], { type: 'text/markdown' });
-      if (fmt === 'pdf') return textToPdf(stripHtml(html), f.name);
-    }
-    if (ext === 'xlsx') {
-      if (fmt === 'csv') return new Blob([await xlsxText(f, true)], { type: 'text/csv' });
-      if (fmt === 'txt') return new Blob([await xlsxText(f, false)], { type: 'text/plain' });
-    }
-    if (ext === 'pptx') {
-      const txt = await pptxText(f);
-      if (fmt === 'txt') return new Blob([txt], { type: 'text/plain' });
-      if (fmt === 'md') return new Blob([txt], { type: 'text/markdown' });
-      if (fmt === 'pdf') return textToPdf(txt, f.name);
-    }
+    if (ext === 'pdf') return produceFromPdf(fmt, f);
+    if (ext === 'txt' || ext === 'md') return produceFromText(fmt, f);
+    if (ext === 'html' || ext === 'htm' || ext === 'docx') return produceFromHtml(fmt, f);
+    if (ext === 'xlsx') return produceFromXlsx(fmt, f);
+    if (ext === 'pptx') return produceFromPptx(fmt, f);
     throw new Error('Unsupported conversion');
   }
   const EXT = { jpeg: 'jpg', png: 'png', webp: 'webp', md: 'md', txt: 'txt', pdf: 'pdf', csv: 'csv' };

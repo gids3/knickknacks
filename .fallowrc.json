@@ -1,4 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["index.html", "js/app.js"]
+  "entry": ["index.html", "js/app.js"],
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-dependencies": "error",
+    "circular-dependencies": "error",
+    "duplicate-exports": "error",
+    "stale-suppressions": "warn"
+  },
+  "ignoreExportsUsedInFile": true
 }

@@ -53,6 +53,22 @@ export function triggerDownload(blob, filename) {
   const a = document.createElement('a'); a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+export function createFsTipController(fsTipEl) {
+  let fsTipTimer = null;
+  return {
+    show() {
+      if (!fsTipEl) return;
+      fsTipEl.hidden = false;
+      clearTimeout(fsTipTimer);
+      fsTipTimer = setTimeout(() => { fsTipEl.hidden = true; }, 4000);
+    },
+    hide() {
+      if (fsTipEl) fsTipEl.hidden = true;
+      clearTimeout(fsTipTimer);
+    },
+  };
+}
+
 export function wireDropzone(drop, input, btn, cb) {
   drop.addEventListener('click', () => input.click());
   btn.addEventListener('click', e => { e.stopPropagation(); input.click(); });
