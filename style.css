@@ -161,9 +161,17 @@
   }
   .page { width: 100%; max-width: 1400px; }
 
-  /* Top bar */
-  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
-  .topbar h1 { font-family: "Lowball Neue", sans-serif; font-size: 48px; margin: 0; letter-spacing: -.5px; font-weight: 700; } 
+  /* Header group — centered grid aligning h1, tabs, and theme toggle */
+  .header-group {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    margin: 0 auto 28px;
+    row-gap: 8px;
+    width: fit-content;
+  }
+  .header-group h1 { font-family: "Lowball Neue", sans-serif; font-size: 48px; margin: 0; letter-spacing: -.5px; font-weight: 700; }
+  .header-group .tabbar { grid-column: 1 / -1; }
   
   .theme-toggle {
     background: transparent;
@@ -185,7 +193,7 @@
   .theme-toggle:hover { transform: scale(1.05); }
 
   /* Tab bar */
-  .tabbar { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; padding-bottom: 6px; margin-bottom: 16px; }
+  .tabbar { display: flex; justify-content: flex-start; gap: 5px; flex-wrap: wrap; padding-bottom: 6px; }
   .tab-btn { flex: none; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 18px; font-weight: 500; letter-spacing: 0.5px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 999px; padding: 8px 12px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; text-transform: uppercase; }
   .tab-btn svg { width: 16px; height: 16px; flex: none; }
   .tab-btn:hover { background: var(--accent-soft); color: var(--text); }
@@ -194,42 +202,89 @@
   .tab-panel { display: block; }
   .tab-panel[hidden] { display: none; }
 
-  /* Home grid (Apple Watch style) */
+  /* Homepage: hide tab bar, center h1 with toggle to its right */
+  .page:has(#tab-home:not([hidden])) .tabbar { display: none; }
+  .page:has(#tab-home:not([hidden])) .header-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+  }
+  .page:has(#tab-home:not([hidden])) .header-group::before {
+    content: '';
+    width: 54px; /* toggle width (38px) + gap (16px) — balances the toggle on the right */
+  }
+  .page:has(#tab-home:not([hidden])) .header-group .theme-toggle {
+    margin-left: 16px;
+    transform: translateY(-4px);
+  }
+
+  /* Home grid — staggered masonry on desktop, auto-fill on mobile */
   .home-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
-    gap: 18px;
-    max-width: 760px;
+    gap: 24px;
+    max-width: 840px;
     margin: 8px auto 0;
   }
+
+  @media (min-width: 641px) {
+    .home-grid {
+      grid-template-columns: repeat(10, 1fr);
+      column-gap: 0;
+      row-gap: 24px;
+    }
+    .home-tile {
+      margin: 0 12px;
+    }
+    .home-tile:nth-child(1) { grid-column: 1 / span 2; }
+    .home-tile:nth-child(2) { grid-column: 3 / span 2; }
+    .home-tile:nth-child(3) { grid-column: 5 / span 2; }
+    .home-tile:nth-child(4) { grid-column: 7 / span 2; }
+    .home-tile:nth-child(5) { grid-column: 9 / span 2; }
+    .home-tile:nth-child(6) { grid-column: 2 / span 2; }
+    .home-tile:nth-child(7) { grid-column: 4 / span 2; }
+    .home-tile:nth-child(8) { grid-column: 6 / span 2; }
+    .home-tile:nth-child(9) { grid-column: 8 / span 2; }
+  }
+
   .home-tile {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 22px 12px;
+    gap: 14px;
+    padding: 28px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 20px;
     cursor: pointer;
     font: inherit;
     color: var(--text);
-    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    transition: transform .2s ease, background .15s ease, border-color .15s ease;
+    will-change: transform;
   }
-  .home-tile:hover { transform: translateY(-3px); border-color: var(--tile); background: color-mix(in srgb, var(--tile) 10%, var(--surface)); }
+
+  @media (hover: hover) {
+    .home-tile:hover {
+      transform: translateY(-4px) scale(1.06);
+      border-color: var(--tile);
+      background: color-mix(in srgb, var(--tile) 10%, var(--surface));
+      z-index: 1;
+    }
+  }
+
   .home-tile:active { transform: translateY(0) scale(0.97); }
   .home-tile-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: color-mix(in srgb, var(--tile) 18%, transparent);
     color: var(--tile);
   }
-  .home-tile-icon svg { width: 30px; height: 30px; }
-  .home-tile-label { font-size: 15px; font-weight: 500; letter-spacing: 0.3px; text-align: center; }
+  .home-tile-icon svg { width: 36px; height: 36px; }
+  .home-tile-label { font-size: 18px; font-weight: 500; letter-spacing: 0.3px; text-align: center; }
 
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; position: relative; max-width: 700px; margin: 0 auto; width: 100%; }
 
@@ -603,17 +658,7 @@
 
   /* --- Tablet & phone: keep the tab bar on a single scrollable row --- */
   @media (max-width: 820px) {
-    .tabbar {
-      flex-wrap: nowrap;
-      justify-content: flex-start;
-      overflow-x: auto;
-      gap: 4px;
-      padding-bottom: 8px;
-      scroll-snap-type: x proximity;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
+    .tabbar { flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding-bottom: 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
     .tabbar::-webkit-scrollbar { display: none; }
     .tab-btn { flex: 0 0 auto; scroll-snap-align: start; }
   }
@@ -622,17 +667,17 @@
   @media (max-width: 640px) {
     body { padding: 20px 12px 84px; }
 
-    .topbar { margin-bottom: 22px; }
-    .topbar h1 { font-size: 32px; }
+    .header-group { margin-bottom: 22px; }
+    .header-group h1 { font-size: 32px; }
 
     .home-grid {
       grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-      gap: 12px;
+      gap: 14px;
     }
-    .home-tile { padding: 16px 10px; gap: 10px; }
-    .home-tile-icon { width: 44px; height: 44px; border-radius: 13px; }
-    .home-tile-icon svg { width: 24px; height: 24px; }
-    .home-tile-label { font-size: 13px; }
+    .home-tile { padding: 18px 10px; gap: 10px; }
+    .home-tile-icon { width: 48px; height: 48px; border-radius: 14px; }
+    .home-tile-icon svg { width: 26px; height: 26px; }
+    .home-tile-label { font-size: 14px; }
 
     .panel { padding: 16px; }
 
